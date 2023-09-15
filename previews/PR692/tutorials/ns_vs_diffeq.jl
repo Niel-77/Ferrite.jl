@@ -204,19 +204,18 @@ integrator = init(
     progress=true, progress_steps=1,
     saveat=Δt_save);
 
-pvd = paraview_collection("vortex-street.pvd");
+pvd = ParaviewCollection("vortex-street", grid);
 integrator = TimeChoiceIterator(integrator, 0.0:Δt_save:T)
 for (u_uc,t) in integrator
 
     update!(ch, t)
     u = copy(u_uc)
     apply!(u, ch)
-    VTKFile("vortex-street-$t.vtu", grid) do vtk
-        write_solution(vtk, dh, u)
-        pvd[t] = vtk
+    addstep!(pvd, t) do io
+        write_solution(io, dh, u)
     end
 end
-vtk_save(pvd);
+close(pvd);
 
 using Test                                                                  #hide
 function compute_divergence(dh, u, cellvalues_v)                            #hide

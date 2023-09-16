@@ -193,7 +193,7 @@ function solve()
 
     # Save the solution
     @timeit "export" begin
-        VTKFile("hyperelasticity", grid) do vtk
+        VTKFile("hyperelasticity", dh) do vtk
             write_solution(vtk, dh, u)
         end
     end

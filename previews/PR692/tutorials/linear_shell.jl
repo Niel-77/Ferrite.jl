@@ -74,7 +74,7 @@ end
 apply!(K, f, ch)
 a = K\f
 
-VTKFile("linear_shell", grid) do vtk
+VTKFile("linear_shell", dh) do vtk
     write_solution(vtk, dh, a)
 end
 

@@ -253,8 +253,8 @@ end</code></pre><pre class="documenter-example-output"><code class="nohighlight 
     end
     VTKFile(&quot;plasticity&quot;, dh) do vtk
         write_solution(vtk, dh, u) # displacement field
-        write_celldata(vtk, grid, mises_values, &quot;von Mises [Pa]&quot;)
-        write_celldata(vtk, grid, κ_values, &quot;Drag stress [Pa]&quot;)
+        write_celldata(vtk, mises_values, &quot;von Mises [Pa]&quot;)
+        write_celldata(vtk, κ_values, &quot;Drag stress [Pa]&quot;)
     end
 
     return u_max, traction_magnitude
@@ -263,76 +263,76 @@ end</code></pre><pre class="documenter-example-output"><code class="nohighlight 
 
  Time step @time = 1:
 Iteration: 0 	residual: 1435838.41167605
-Iteration: 1 	residual: 118655.22432287
+Iteration: 1 	residual: 118655.22432288
 Iteration: 2 	residual: 59.50456055
-Iteration: 3 	residual: 0.00002657
+Iteration: 3 	residual: 0.00002552
 
  Time step @time = 2:
-Iteration: 0 	residual: 159537.60129741
-Iteration: 1 	residual: 1694313.86971234
-Iteration: 2 	residual: 61777.44063579
-Iteration: 3 	residual: 14.34471354
-Iteration: 4 	residual: 0.00001333
+Iteration: 0 	residual: 159537.60129725
+Iteration: 1 	residual: 1706974.26598674
+Iteration: 2 	residual: 97346.48157052
+Iteration: 3 	residual: 37.17532013
+Iteration: 4 	residual: 0.00001604
 
  Time step @time = 3:
-Iteration: 0 	residual: 159537.60129720
-Iteration: 1 	residual: 3005777.30196504
-Iteration: 2 	residual: 98701.86130381
-Iteration: 3 	residual: 50.48442186
-Iteration: 4 	residual: 0.00002858
+Iteration: 0 	residual: 159537.60129708
+Iteration: 1 	residual: 3342325.59794231
+Iteration: 2 	residual: 190704.08724570
+Iteration: 3 	residual: 202.17775795
+Iteration: 4 	residual: 0.00028978
 
  Time step @time = 4:
-Iteration: 0 	residual: 159537.60129706
-Iteration: 1 	residual: 3686564.17283101
-Iteration: 2 	residual: 99317.69961827
-Iteration: 3 	residual: 55.76625530
-Iteration: 4 	residual: 0.00003638
+Iteration: 0 	residual: 159537.60129717
+Iteration: 1 	residual: 3837148.56600751
+Iteration: 2 	residual: 93744.34720460
+Iteration: 3 	residual: 56.01661015
+Iteration: 4 	residual: 0.00003803
 
  Time step @time = 5:
-Iteration: 0 	residual: 159537.60129683
-Iteration: 1 	residual: 4815597.79165811
-Iteration: 2 	residual: 730951.45805052
-Iteration: 3 	residual: 2456.80378213
-Iteration: 4 	residual: 0.04352224
+Iteration: 0 	residual: 159537.60129753
+Iteration: 1 	residual: 4499093.20644349
+Iteration: 2 	residual: 615924.47302725
+Iteration: 3 	residual: 1396.50006055
+Iteration: 4 	residual: 0.01156217
 
  Time step @time = 6:
-Iteration: 0 	residual: 159537.60129755
-Iteration: 1 	residual: 5844891.24681989
-Iteration: 2 	residual: 1299893.39521776
-Iteration: 3 	residual: 9662.50634879
-Iteration: 4 	residual: 0.60072876
+Iteration: 0 	residual: 159537.60129749
+Iteration: 1 	residual: 6390177.39746221
+Iteration: 2 	residual: 1479349.52111605
+Iteration: 3 	residual: 12205.11215060
+Iteration: 4 	residual: 0.95579491
 
  Time step @time = 7:
-Iteration: 0 	residual: 159537.60129806
-Iteration: 1 	residual: 7260132.97087175
-Iteration: 2 	residual: 1968045.57260960
-Iteration: 3 	residual: 22404.15648327
-Iteration: 4 	residual: 3.56370765
-Iteration: 5 	residual: 0.00002271
+Iteration: 0 	residual: 159537.60129953
+Iteration: 1 	residual: 7819970.83302567
+Iteration: 2 	residual: 2118439.33204676
+Iteration: 3 	residual: 23025.99587947
+Iteration: 4 	residual: 2.74371066
+Iteration: 5 	residual: 0.00002519
 
  Time step @time = 8:
-Iteration: 0 	residual: 159537.60129694
-Iteration: 1 	residual: 8107515.67615003
-Iteration: 2 	residual: 2168390.59765595
-Iteration: 3 	residual: 17709.27351544
-Iteration: 4 	residual: 2.25100126
-Iteration: 5 	residual: 0.00003113
+Iteration: 0 	residual: 159537.60129639
+Iteration: 1 	residual: 9190557.73310197
+Iteration: 2 	residual: 2331448.12320142
+Iteration: 3 	residual: 20710.08476564
+Iteration: 4 	residual: 3.33071618
+Iteration: 5 	residual: 0.00003591
 
  Time step @time = 9:
-Iteration: 0 	residual: 159537.60129695
-Iteration: 1 	residual: 9104369.53943812
-Iteration: 2 	residual: 2157882.16687369
-Iteration: 3 	residual: 52966.59072069
-Iteration: 4 	residual: 14.65426908
-Iteration: 5 	residual: 0.00003477
+Iteration: 0 	residual: 159537.60129795
+Iteration: 1 	residual: 9027077.47112352
+Iteration: 2 	residual: 2244627.31941853
+Iteration: 3 	residual: 52870.82325017
+Iteration: 4 	residual: 14.74623240
+Iteration: 5 	residual: 0.00003729
 
  Time step @time = 10:
-Iteration: 0 	residual: 159537.60129724
-Iteration: 1 	residual: 9782468.36173550
-Iteration: 2 	residual: 1947433.21642860
-Iteration: 3 	residual: 34351.30178459
-Iteration: 4 	residual: 4.59651933
-Iteration: 5 	residual: 0.00004702</code></pre><p>Finally we plot the load-displacement curve.</p><pre><code class="language-julia hljs">using Plots
+Iteration: 0 	residual: 159537.60129766
+Iteration: 1 	residual: 9789912.14268175
+Iteration: 2 	residual: 2051453.76095934
+Iteration: 3 	residual: 35147.43735866
+Iteration: 4 	residual: 4.58356232
+Iteration: 5 	residual: 0.00003914</code></pre><p>Finally we plot the load-displacement curve.</p><pre><code class="language-julia hljs">using Plots
 plot(
     vcat(0.0, u_max),                # add the origin as a point
     vcat(0.0, traction_magnitude),
@@ -342,7 +342,7 @@ plot(
     markershape=:auto
     )
 ylabel!(&quot;Traction [Pa]&quot;)
-xlabel!(&quot;Maximum deflection [m]&quot;)</code></pre><img src="d9477b60.svg" alt="Example block output"/><p><em>Figure 2.</em> Load-displacement-curve for the beam, showing a clear decrease in stiffness as more material starts to yield.</p><h2 id="plasticity-plain-program"><a class="docs-heading-anchor" href="#plasticity-plain-program">Plain program</a><a id="plasticity-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#plasticity-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../plasticity.jl"><code>plasticity.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, Tensors, SparseArrays, LinearAlgebra, Printf
+xlabel!(&quot;Maximum deflection [m]&quot;)</code></pre><img src="67879439.svg" alt="Example block output"/><p><em>Figure 2.</em> Load-displacement-curve for the beam, showing a clear decrease in stiffness as more material starts to yield.</p><h2 id="plasticity-plain-program"><a class="docs-heading-anchor" href="#plasticity-plain-program">Plain program</a><a id="plasticity-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#plasticity-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../plasticity.jl"><code>plasticity.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, Tensors, SparseArrays, LinearAlgebra, Printf
 
 struct J2Plasticity{T, S &lt;: SymmetricTensor{4, 3, T}}
     G::T  # Shear modulus
@@ -622,8 +622,8 @@ function solve()
     end
     VTKFile(&quot;plasticity&quot;, dh) do vtk
         write_solution(vtk, dh, u) # displacement field
-        write_celldata(vtk, grid, mises_values, &quot;von Mises [Pa]&quot;)
-        write_celldata(vtk, grid, κ_values, &quot;Drag stress [Pa]&quot;)
+        write_celldata(vtk, mises_values, &quot;von Mises [Pa]&quot;)
+        write_celldata(vtk, κ_values, &quot;Drag stress [Pa]&quot;)
     end
 
     return u_max, traction_magnitude
@@ -641,4 +641,4 @@ plot(
     markershape=:auto
     )
 ylabel!(&quot;Traction [Pa]&quot;)
-xlabel!(&quot;Maximum deflection [m]&quot;)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hyperelasticity/">« Hyperelasticity</a><a class="docs-footer-nextpage" href="../transient_heat_equation/">Transient heat equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.0.0 on <span class="colophon-date" title="Saturday 16 September 2023 11:42">Saturday 16 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+xlabel!(&quot;Maximum deflection [m]&quot;)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hyperelasticity/">« Hyperelasticity</a><a class="docs-footer-nextpage" href="../transient_heat_equation/">Transient heat equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.0.0 on <span class="colophon-date" title="Saturday 16 September 2023 12:01">Saturday 16 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

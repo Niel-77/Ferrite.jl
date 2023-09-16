@@ -48,4 +48,3 @@ Plots.plot(getindex.(points,1), u_points, xlabel="x (coordinate)", ylabel="u (te
 Plots.plot(getindex.(points,1), getindex.(q_points,1), xlabel="x (coordinate)", ylabel="q_x (flux in x-direction)", label=nothing)
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

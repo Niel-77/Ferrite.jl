@@ -377,4 +377,3 @@ topopt(0.03, 0.5, 60, "large_radius"; output=:false);
 ##topopt(0.02, 0.5, 60, "topopt_animation"; output=:true); # can be used to create animations
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

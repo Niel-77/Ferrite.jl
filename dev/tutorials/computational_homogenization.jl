@@ -232,4 +232,3 @@ vtk_grid("homogenization", dh) do vtk
 end;
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

@@ -106,7 +106,7 @@ apply_analytical!(uₙ, dh, :u, x -> (x[1]^2 - 1) * (x[2]^2 - 1) * max_temp);
 
 apply!(A, ch);
 
-pvd = ParaviewCollection("transient-heat", grid);
+pvd = VTKFileCollection("transient-heat", grid);
 t = 0
 addstep!(pvd, t) do io
     write_solution(io, dh, uₙ)

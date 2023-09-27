@@ -1,6 +1,6 @@
 using Ferrite, FerriteGmsh, SparseArrays
 
-grid = togrid("logo.geo")
+grid = togrid("logo.geo");
 
 addfaceset!(grid, "top", x->x[2] ≈ 1.0)
 addfaceset!(grid, "left", x->x[1] < 1e-6)

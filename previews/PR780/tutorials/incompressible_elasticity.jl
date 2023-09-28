@@ -225,4 +225,3 @@ u1 = solve(0.5, linear_u,    linear_p);
 u2 = solve(0.5, quadratic_u, linear_p);
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

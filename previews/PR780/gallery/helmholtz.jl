@@ -54,7 +54,7 @@ function doassemble(cellvalues::CellValues, facevalues::FaceValues,
     for (cellcount, cell) in enumerate(CellIterator(dh))
         fill!(Ke, 0)
         fill!(fe, 0)
-        coords = get_cell_coordinates(cell)
+        coords = getcoordinates(cell)
 
         reinit!(cellvalues, cell)
 
@@ -108,4 +108,3 @@ vtk_save(vtkfile)
 println("Helmholtz successful")
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

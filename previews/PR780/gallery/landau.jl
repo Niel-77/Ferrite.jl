@@ -214,4 +214,3 @@ vtk_save("landauorig", model)
 vtk_save("landaufinal", model)
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

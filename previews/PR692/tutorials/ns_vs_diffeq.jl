@@ -211,7 +211,7 @@ for (u_uc,t) in integrator
     update!(ch, t)
     u = copy(u_uc)
     apply!(u, ch)
-    VTKFile(pvd, t) do io
+    addstep!(pvd, t) do io
         write_solution(io, dh, u)
     end
 end

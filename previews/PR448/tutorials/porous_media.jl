@@ -208,7 +208,7 @@ function solve(dh, ch, domains; Δt=0.025, t_total=1.0)
     a = zeros(ndofs(dh))
     a_old = copy(a)
     pvd = paraview_collection("porous_media.pvd");
-    for (step, t) = enumerate(0:Δt:t_total)
+    for (step, t) in enumerate(0:Δt:t_total)
         if t>0
             update!(ch, t)
             apply!(a, ch)
@@ -232,4 +232,3 @@ dh, ch, domains = setup_problem()
 solve(dh, ch, domains);
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

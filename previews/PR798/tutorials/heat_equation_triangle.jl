@@ -1,6 +1,6 @@
 using Ferrite, SparseArrays
 
-grid = generate_grid(Triangle, (100, 100));
+grid = generate_grid(Triangle, (20, 20));
 
 ip = Lagrange{RefTriangle, 1}()
 qr = QuadratureRule{RefTriangle}(2)
@@ -83,5 +83,33 @@ vtk_grid("heat_equation", dh) do vtk
 end
 
 @show norm(u)/length(u)
+
+function calculate_flux_lag(dh, dΩ, ip, a)
+    qr = FaceQuadratureRule{RefTriangle}(2)
+    fv = FaceValues(qr, ip, Lagrange{RefTriangle,1}())
+    grid = dh.grid
+    dofrange = dof_range(dh, :u)
+    flux = 0.0
+    dofs = celldofs(dh, 1)
+    ae = zeros(length(dofs))
+    x = getcoordinates(grid, 1)
+    for (cellnr, facenr) in dΩ
+        getcoordinates!(x, grid, cellnr)
+        cell = getcells(grid, cellnr)
+        celldofs!(dofs, dh, cellnr)
+        map!(i->a[i], ae, dofs)
+        reinit!(fv, x, facenr, cell)
+        for q_point in 1:getnquadpoints(fv)
+            dΓ = getdetJdV(fv, q_point)
+            n = getnormal(fv, q_point)
+            q = function_gradient(fv, q_point, ae, dofrange)
+            flux -= (q ⋅ n)*dΓ
+        end
+    end
+    return flux
+end
+
+flux = calculate_flux_lag(dh, ∂Ω, ip, u)
+@show flux
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

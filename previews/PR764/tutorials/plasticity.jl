@@ -300,4 +300,3 @@ ylabel!("Traction [Pa]")
 xlabel!("Maximum deflection [m]")
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

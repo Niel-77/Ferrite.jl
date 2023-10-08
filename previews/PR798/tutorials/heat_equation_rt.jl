@@ -1,9 +1,10 @@
 using Ferrite, SparseArrays
 
+#grid = generate_grid(QuadraticTriangle, (20, 20));
 grid = generate_grid(Triangle, (20, 20));
 
-ip_geo = Lagrange{RefTriangle, 1}()
-ipu = Lagrange{RefTriangle, 1}()
+ip_geo = Ferrite.default_interpolation(getcelltype(grid))
+ipu = Lagrange{RefTriangle, 1}() # Why does it "explode" for 2nd order ipu?
 ipq = RaviartThomas{2,RefTriangle,1}()
 qr = QuadratureRule{RefTriangle}(2)
 cellvalues = (u=CellValues(qr, ipu, ip_geo), q=CellValues(qr, ipq, ip_geo))
@@ -43,12 +44,12 @@ function assemble_element!(Ke::Matrix, fe::Vector, cv::NamedTuple, dr::NamedTupl
             δu  = shape_value(cvu, q_point, iu)
             ∇δu = shape_gradient(cvu, q_point, iu)
             # Add contribution to fe
-            fe[Iu] += δu * dΩ
+            fe[Iu] -= δu * dΩ
             # Loop over trial shape functions
             for (jq, Jq) in pairs(drq)
                 q = shape_value(cvq, q_point, jq)
                 # Add contribution to Ke
-                Ke[Iu, Jq] -= (∇δu ⋅ q) * dΩ
+                Ke[Iu, Jq] += (∇δu ⋅ q) * dΩ
             end
         end
         for (iq, Iq) in pairs(drq)
@@ -67,6 +68,7 @@ function assemble_element!(Ke::Matrix, fe::Vector, cv::NamedTuple, dr::NamedTupl
 end
 
 function assemble_global(cellvalues, K::SparseMatrixCSC, dh::DofHandler)
+    grid = dh.grid
     # Allocate the element stiffness matrix and element force vector
     dofranges = (u = dof_range(dh, :u), q = dof_range(dh, :q))
     ncelldofs = ndofs_per_cell(dh)
@@ -76,12 +78,12 @@ function assemble_global(cellvalues, K::SparseMatrixCSC, dh::DofHandler)
     f = zeros(ndofs(dh))
     # Create an assembler
     assembler = start_assemble(K, f)
-    x = copy(getcoordinates(dh.grid, 1))
+    x = copy(getcoordinates(grid, 1))
     dofs = copy(celldofs(dh, 1))
     # Loop over all cels
-    for cellnr in 1:getncells(dh.grid)
+    for cellnr in 1:getncells(grid)
         # Reinitialize cellvalues for this cell
-        cell = getcells(dh.grid, cellnr)
+        cell = getcells(grid, cellnr)
         getcoordinates!(x, grid, cell)
         celldofs!(dofs, dh, cellnr)
         reinit!(cellvalues[:u], x, cell)
@@ -115,9 +117,11 @@ end
 @show norm(u_nodes)/length(u_nodes)
 
 function calculate_flux(dh, dΩ, ip, a)
-    qr = FaceQuadratureRule{RefTriangle}(4)
-    fv = FaceValues(qr, ip, Lagrange{RefTriangle,1}())
     grid = dh.grid
+    qr = FaceQuadratureRule{RefTriangle}(4)
+    ip_geo = Ferrite.default_interpolation(getcelltype(grid))
+    fv = FaceValues(qr, ip, ip_geo)
+
     dofrange = dof_range(dh, :q)
     flux = 0.0
     dofs = celldofs(dh, 1)
@@ -140,9 +144,10 @@ function calculate_flux(dh, dΩ, ip, a)
 end
 
 function calculate_flux_lag(dh, dΩ, ip, a)
-    qr = FaceQuadratureRule{RefTriangle}(4)
-    fv = FaceValues(qr, ip, Lagrange{RefTriangle,1}())
     grid = dh.grid
+    qr = FaceQuadratureRule{RefTriangle}(4)
+    ip_geo = Ferrite.default_interpolation(getcelltype(grid))
+    fv = FaceValues(qr, ip, ip_geo)
     dofrange = dof_range(dh, :u)
     flux = 0.0
     dofs = celldofs(dh, 1)
@@ -167,5 +172,24 @@ end
 flux = calculate_flux(dh, ∂Ω, ipq, u)
 flux_lag = calculate_flux_lag(dh, ∂Ω, ipu, u)
 @show flux, flux_lag
+
+
+function get_Ke(dh, cellvalues; cellnr=1)
+    dofranges = (u = dof_range(dh, :u), q = dof_range(dh, :q))
+    ncelldofs = ndofs_per_cell(dh)
+    Ke = zeros(ncelldofs, ncelldofs)
+    fe = zeros(ncelldofs)
+    x = getcoordinates(grid, cellnr)
+    cell = getcells(grid, cellnr)
+    reinit!(cellvalues[:u], x, cell)
+    reinit!(cellvalues[:q], x, cell)
+
+    # Reset to 0
+    fill!(Ke, 0)
+    fill!(fe, 0)
+    # Compute element contribution
+    assemble_element!(Ke, fe, cellvalues, dofranges)
+    return Ke
+end
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

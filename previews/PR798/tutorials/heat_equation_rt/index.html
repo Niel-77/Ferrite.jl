@@ -11,8 +11,9 @@ u = u_\mathrm{D} \in \Gamma_\mathrm{D}\]</p><h2 id="Weak-form"><a class="docs-he
 \forall\ \delta u \in \delta H^1 \\
 \int_{\Omega} \boldsymbol{\delta q} \cdot \boldsymbol{q}\ \mathrm{d}\Omega &amp;= - \int_{\Omega} \boldsymbol{\delta q} \cdot \left[k\ \nabla u\right]\ \mathrm{d}\Omega
  \quad \forall\ \boldsymbol{\delta q} \in \delta H\mathrm{(div)}
-\end{align*}\]</p><h2 id="Commented-Program"><a class="docs-heading-anchor" href="#Commented-Program">Commented Program</a><a id="Commented-Program-1"></a><a class="docs-heading-anchor-permalink" href="#Commented-Program" title="Permalink"></a></h2><p>Now we solve the problem in Ferrite. What follows is a program spliced with comments. The full program, without comments, can be found in the next <a href="@ref heat_equation-plain-program">section</a>.</p><p>First we load Ferrite, and some other packages we need</p><pre><code class="language-julia hljs">using Ferrite, SparseArrays</code></pre><p>We start by generating a simple grid with 20x20 quadrilateral elements using <code>generate_grid</code>. The generator defaults to the unit square, so we don&#39;t need to specify the corners of the domain.</p><pre><code class="language-julia hljs">grid = generate_grid(Triangle, (20, 20));</code></pre><h3 id="Trial-and-test-functions"><a class="docs-heading-anchor" href="#Trial-and-test-functions">Trial and test functions</a><a id="Trial-and-test-functions-1"></a><a class="docs-heading-anchor-permalink" href="#Trial-and-test-functions" title="Permalink"></a></h3><p>A <code>CellValues</code> facilitates the process of evaluating values and gradients of test and trial functions (among other things). To define this we need to specify an interpolation space for the shape functions. We use Lagrange functions based on the two-dimensional reference quadrilateral. We also define a quadrature rule based on the same reference element. We combine the interpolation and the quadrature rule to a <code>CellValues</code> object.</p><pre><code class="language-julia hljs">ip_geo = Lagrange{RefTriangle, 1}()
-ipu = Lagrange{RefTriangle, 1}()
+\end{align*}\]</p><h2 id="Commented-Program"><a class="docs-heading-anchor" href="#Commented-Program">Commented Program</a><a id="Commented-Program-1"></a><a class="docs-heading-anchor-permalink" href="#Commented-Program" title="Permalink"></a></h2><p>Now we solve the problem in Ferrite. What follows is a program spliced with comments. The full program, without comments, can be found in the next <a href="@ref heat_equation-plain-program">section</a>.</p><p>First we load Ferrite, and some other packages we need</p><pre><code class="language-julia hljs">using Ferrite, SparseArrays</code></pre><p>We start by generating a simple grid with 20x20 quadrilateral elements using <code>generate_grid</code>. The generator defaults to the unit square, so we don&#39;t need to specify the corners of the domain.</p><pre><code class="language-julia hljs">#grid = generate_grid(QuadraticTriangle, (20, 20));
+grid = generate_grid(Triangle, (20, 20));</code></pre><h3 id="Trial-and-test-functions"><a class="docs-heading-anchor" href="#Trial-and-test-functions">Trial and test functions</a><a id="Trial-and-test-functions-1"></a><a class="docs-heading-anchor-permalink" href="#Trial-and-test-functions" title="Permalink"></a></h3><p>A <code>CellValues</code> facilitates the process of evaluating values and gradients of test and trial functions (among other things). To define this we need to specify an interpolation space for the shape functions. We use Lagrange functions based on the two-dimensional reference quadrilateral. We also define a quadrature rule based on the same reference element. We combine the interpolation and the quadrature rule to a <code>CellValues</code> object.</p><pre><code class="language-julia hljs">ip_geo = Ferrite.default_interpolation(getcelltype(grid))
+ipu = Lagrange{RefTriangle, 1}() # Why does it &quot;explode&quot; for 2nd order ipu?
 ipq = RaviartThomas{2,RefTriangle,1}()
 qr = QuadratureRule{RefTriangle}(2)
 cellvalues = (u=CellValues(qr, ipu, ip_geo), q=CellValues(qr, ipq, ip_geo))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(u = CellValues{Ferrite.FunctionValues{Lagrange{RefTriangle, 1, Nothing}, Matrix{Float64}, Matrix{Vec{2, Float64}}, Matrix{Vec{2, Float64}}}, Ferrite.GeometryValues{Lagrange{RefTriangle, 1, Nothing}, Matrix{Float64}, Matrix{Vec{2, Float64}}, Nothing}, QuadratureRule{RefTriangle, Float64, 2}, Vector{Float64}}(Ferrite.FunctionValues{Lagrange{RefTriangle, 1, Nothing}, Matrix{Float64}, Matrix{Vec{2, Float64}}, Matrix{Vec{2, Float64}}}(Lagrange{RefTriangle, 1}(), [0.16666666666667 0.16666666666667 0.66666666666667; 0.16666666666667 0.66666666666667 0.16666666666667; 0.6666666666666601 0.16666666666666008 0.16666666666666005], [0.16666666666667 0.16666666666667 0.66666666666667; 0.16666666666667 0.66666666666667 0.16666666666667; 0.6666666666666601 0.16666666666666008 0.16666666666666005], Vec{2, Float64}[[NaN, NaN] [NaN, NaN] [NaN, NaN]; [NaN, NaN] [NaN, NaN] [NaN, NaN]; [NaN, NaN] [NaN, NaN] [NaN, NaN]], Vec{2, Float64}[[1.0, 0.0] [1.0, 0.0] [1.0, 0.0]; [0.0, 1.0] [0.0, 1.0] [0.0, 1.0]; [-1.0, -1.0] [-1.0, -1.0] [-1.0, -1.0]]), Ferrite.GeometryValues{Lagrange{RefTriangle, 1, Nothing}, Matrix{Float64}, Matrix{Vec{2, Float64}}, Nothing}(Lagrange{RefTriangle, 1}(), [0.16666666666667 0.16666666666667 0.66666666666667; 0.16666666666667 0.66666666666667 0.16666666666667; 0.6666666666666601 0.16666666666666008 0.16666666666666005], Vec{2, Float64}[[1.0, 0.0] [1.0, 0.0] [1.0, 0.0]; [0.0, 1.0] [0.0, 1.0] [0.0, 1.0]; [-1.0, -1.0] [-1.0, -1.0] [-1.0, -1.0]], nothing), QuadratureRule{RefTriangle, Float64, 2}([0.166666666666665, 0.166666666666665, 0.166666666666665], Vec{2, Float64}[[0.16666666666667, 0.16666666666667], [0.16666666666667, 0.66666666666667], [0.66666666666667, 0.16666666666667]]), [NaN, NaN, NaN]), q = CellValues{Ferrite.FunctionValues{RaviartThomas{2, RefTriangle, 1}, Matrix{Vec{2, Float64}}, Matrix{Tensor{2, 2, Float64, 4}}, Matrix{Tensor{2, 2, Float64, 4}}}, Ferrite.GeometryValues{Lagrange{RefTriangle, 1, Nothing}, Matrix{Float64}, Matrix{Vec{2, Float64}}, Matrix{Tensor{2, 2, Float64, 4}}}, QuadratureRule{RefTriangle, Float64, 2}, Vector{Float64}}(Ferrite.FunctionValues{RaviartThomas{2, RefTriangle, 1}, Matrix{Vec{2, Float64}}, Matrix{Tensor{2, 2, Float64, 4}}, Matrix{Tensor{2, 2, Float64, 4}}}(RaviartThomas{2, RefTriangle, 1}(), Vec{2, Float64}[[0.0, 0.0] [0.0, 0.0] [0.0, 0.0]; [0.0, 0.0] [0.0, 0.0] [0.0, 0.0]; [0.0, 0.0] [0.0, 0.0] [0.0, 0.0]], Vec{2, Float64}[[0.16666666666667, 0.16666666666667] [0.16666666666667, 0.66666666666667] [0.66666666666667, 0.16666666666667]; [-0.83333333333333, 0.16666666666667] [-0.83333333333333, 0.66666666666667] [-0.33333333333333004, 0.16666666666667]; [0.16666666666667, -0.83333333333333] [0.16666666666667, -0.33333333333333004] [0.66666666666667, -0.83333333333333]], Tensor{2, 2, Float64, 4}[[NaN NaN; NaN NaN] [NaN NaN; NaN NaN] [NaN NaN; NaN NaN]; [NaN NaN; NaN NaN] [NaN NaN; NaN NaN] [NaN NaN; NaN NaN]; [NaN NaN; NaN NaN] [NaN NaN; NaN NaN] [NaN NaN; NaN NaN]], Tensor{2, 2, Float64, 4}[[1.0 0.0; 0.0 1.0] [1.0 0.0; 0.0 1.0] [1.0 0.0; 0.0 1.0]; [1.0 0.0; 0.0 1.0] [1.0 0.0; 0.0 1.0] [1.0 0.0; 0.0 1.0]; [1.0 0.0; 0.0 1.0] [1.0 0.0; 0.0 1.0] [1.0 0.0; 0.0 1.0]]), Ferrite.GeometryValues{Lagrange{RefTriangle, 1, Nothing}, Matrix{Float64}, Matrix{Vec{2, Float64}}, Matrix{Tensor{2, 2, Float64, 4}}}(Lagrange{RefTriangle, 1}(), [0.16666666666667 0.16666666666667 0.66666666666667; 0.16666666666667 0.66666666666667 0.16666666666667; 0.6666666666666601 0.16666666666666008 0.16666666666666005], Vec{2, Float64}[[1.0, 0.0] [1.0, 0.0] [1.0, 0.0]; [0.0, 1.0] [0.0, 1.0] [0.0, 1.0]; [-1.0, -1.0] [-1.0, -1.0] [-1.0, -1.0]], Tensor{2, 2, Float64, 4}[[0.0 0.0; 0.0 0.0] [0.0 0.0; 0.0 0.0] [0.0 0.0; 0.0 0.0]; [0.0 0.0; 0.0 0.0] [0.0 0.0; 0.0 0.0] [0.0 0.0; 0.0 0.0]; [-0.0 -0.0; -0.0 -0.0] [-0.0 -0.0; -0.0 -0.0] [-0.0 -0.0; -0.0 -0.0]]), QuadratureRule{RefTriangle, Float64, 2}([0.166666666666665, 0.166666666666665, 0.166666666666665], Vec{2, Float64}[[0.16666666666667, 0.16666666666667], [0.16666666666667, 0.66666666666667], [0.66666666666667, 0.16666666666667]]), [NaN, NaN, NaN]))</code></pre><h3 id="Degrees-of-freedom"><a class="docs-heading-anchor" href="#Degrees-of-freedom">Degrees of freedom</a><a id="Degrees-of-freedom-1"></a><a class="docs-heading-anchor-permalink" href="#Degrees-of-freedom" title="Permalink"></a></h3><p>Next we need to define a <code>DofHandler</code>, which will take care of numbering and distribution of degrees of freedom for our approximated fields. We create the <code>DofHandler</code> and then add a single scalar field called <code>:u</code> based on our interpolation <code>ip</code> defined above. Lastly we <code>close!</code> the <code>DofHandler</code>, it is now that the dofs are distributed for all the elements.</p><pre><code class="language-julia hljs">dh = DofHandler(grid)
@@ -60,12 +61,12 @@ add!(ch, dbc);</code></pre><p>Finally we also need to <code>close!</code> our co
             δu  = shape_value(cvu, q_point, iu)
             ∇δu = shape_gradient(cvu, q_point, iu)
             # Add contribution to fe
-            fe[Iu] += δu * dΩ
+            fe[Iu] -= δu * dΩ
             # Loop over trial shape functions
             for (jq, Jq) in pairs(drq)
                 q = shape_value(cvq, q_point, jq)
                 # Add contribution to Ke
-                Ke[Iu, Jq] -= (∇δu ⋅ q) * dΩ
+                Ke[Iu, Jq] += (∇δu ⋅ q) * dΩ
             end
         end
         for (iq, Iq) in pairs(drq)
@@ -82,6 +83,7 @@ add!(ch, dbc);</code></pre><p>Finally we also need to <code>close!</code> our co
     end
     return Ke, fe
 end</code></pre><h4 id="Global-assembly"><a class="docs-heading-anchor" href="#Global-assembly">Global assembly</a><a id="Global-assembly-1"></a><a class="docs-heading-anchor-permalink" href="#Global-assembly" title="Permalink"></a></h4><p>We define the function <code>assemble_global</code> to loop over the elements and do the global assembly. The function takes our <code>cellvalues</code>, the sparse matrix <code>K</code>, and our DofHandler as input arguments and returns the assembled global stiffness matrix, and the assembled global force vector. We start by allocating <code>Ke</code>, <code>fe</code>, and the global force vector <code>f</code>. We also create an assembler by using <code>start_assemble</code>. The assembler lets us assemble into <code>K</code> and <code>f</code> efficiently. We then start the loop over all the elements. In each loop iteration we reinitialize <code>cellvalues</code> (to update derivatives of shape functions etc.), compute the element contribution with <code>assemble_element!</code>, and then assemble into the global <code>K</code> and <code>f</code> with <code>assemble!</code>.</p><div class="admonition is-info"><header class="admonition-header">Notation</header><div class="admonition-body"><p>Comparing again with <a href="../../topics/fe_intro/#Introduction-to-FEM">Introduction to FEM</a>, <code>f</code> and <code>u</code> correspond to <span>$\underline{\hat{f}}$</span> and <span>$\underline{\hat{u}}$</span>, since they represent the discretized versions. However, through the code we use <code>f</code> and <code>u</code> instead to reflect the strong connection between the weak form and the Ferrite implementation.</p></div></div><pre><code class="language-julia hljs">function assemble_global(cellvalues, K::SparseMatrixCSC, dh::DofHandler)
+    grid = dh.grid
     # Allocate the element stiffness matrix and element force vector
     dofranges = (u = dof_range(dh, :u), q = dof_range(dh, :q))
     ncelldofs = ndofs_per_cell(dh)
@@ -91,12 +93,12 @@ end</code></pre><h4 id="Global-assembly"><a class="docs-heading-anchor" href="#G
     f = zeros(ndofs(dh))
     # Create an assembler
     assembler = start_assemble(K, f)
-    x = copy(getcoordinates(dh.grid, 1))
+    x = copy(getcoordinates(grid, 1))
     dofs = copy(celldofs(dh, 1))
     # Loop over all cels
-    for cellnr in 1:getncells(dh.grid)
+    for cellnr in 1:getncells(grid)
         # Reinitialize cellvalues for this cell
-        cell = getcells(dh.grid, cellnr)
+        cell = getcells(grid, cellnr)
         getcoordinates!(x, grid, cell)
         celldofs!(dofs, dh, cellnr)
         reinit!(cellvalues[:u], x, cell)
@@ -122,9 +124,11 @@ vtk_grid(&quot;heat_equation_rt&quot;, dh) do vtk
 end
 
 @show norm(u_nodes)/length(u_nodes)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.007533130061845076</code></pre><h2 id="Postprocess-the-total-flux"><a class="docs-heading-anchor" href="#Postprocess-the-total-flux">Postprocess the total flux</a><a id="Postprocess-the-total-flux-1"></a><a class="docs-heading-anchor-permalink" href="#Postprocess-the-total-flux" title="Permalink"></a></h2><pre><code class="language-julia hljs">function calculate_flux(dh, dΩ, ip, a)
-    qr = FaceQuadratureRule{RefTriangle}(4)
-    fv = FaceValues(qr, ip, Lagrange{RefTriangle,1}())
     grid = dh.grid
+    qr = FaceQuadratureRule{RefTriangle}(4)
+    ip_geo = Ferrite.default_interpolation(getcelltype(grid))
+    fv = FaceValues(qr, ip, ip_geo)
+
     dofrange = dof_range(dh, :q)
     flux = 0.0
     dofs = celldofs(dh, 1)
@@ -147,9 +151,10 @@ end
 end
 
 function calculate_flux_lag(dh, dΩ, ip, a)
-    qr = FaceQuadratureRule{RefTriangle}(4)
-    fv = FaceValues(qr, ip, Lagrange{RefTriangle,1}())
     grid = dh.grid
+    qr = FaceQuadratureRule{RefTriangle}(4)
+    ip_geo = Ferrite.default_interpolation(getcelltype(grid))
+    fv = FaceValues(qr, ip, ip_geo)
     dofrange = dof_range(dh, :u)
     flux = 0.0
     dofs = celldofs(dh, 1)
@@ -173,12 +178,32 @@ end
 
 flux = calculate_flux(dh, ∂Ω, ipq, u)
 flux_lag = calculate_flux_lag(dh, ∂Ω, ipu, u)
-@show flux, flux_lag</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(3.7081831438173567, 3.747296801981298)</code></pre><h2 id="heat_equation-plain-program"><a class="docs-heading-anchor" href="#heat_equation-plain-program">Plain program</a><a id="heat_equation-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#heat_equation-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../heat_equation.jl"><code>heat_equation.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, SparseArrays
+@show flux, flux_lag
 
+
+function get_Ke(dh, cellvalues; cellnr=1)
+    dofranges = (u = dof_range(dh, :u), q = dof_range(dh, :q))
+    ncelldofs = ndofs_per_cell(dh)
+    Ke = zeros(ncelldofs, ncelldofs)
+    fe = zeros(ncelldofs)
+    x = getcoordinates(grid, cellnr)
+    cell = getcells(grid, cellnr)
+    reinit!(cellvalues[:u], x, cell)
+    reinit!(cellvalues[:q], x, cell)
+
+    # Reset to 0
+    fill!(Ke, 0)
+    fill!(fe, 0)
+    # Compute element contribution
+    assemble_element!(Ke, fe, cellvalues, dofranges)
+    return Ke
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">get_Ke (generic function with 1 method)</code></pre><h2 id="heat_equation-plain-program"><a class="docs-heading-anchor" href="#heat_equation-plain-program">Plain program</a><a id="heat_equation-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#heat_equation-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../heat_equation.jl"><code>heat_equation.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, SparseArrays
+
+#grid = generate_grid(QuadraticTriangle, (20, 20));
 grid = generate_grid(Triangle, (20, 20));
 
-ip_geo = Lagrange{RefTriangle, 1}()
-ipu = Lagrange{RefTriangle, 1}()
+ip_geo = Ferrite.default_interpolation(getcelltype(grid))
+ipu = Lagrange{RefTriangle, 1}() # Why does it &quot;explode&quot; for 2nd order ipu?
 ipq = RaviartThomas{2,RefTriangle,1}()
 qr = QuadratureRule{RefTriangle}(2)
 cellvalues = (u=CellValues(qr, ipu, ip_geo), q=CellValues(qr, ipq, ip_geo))
@@ -218,12 +243,12 @@ function assemble_element!(Ke::Matrix, fe::Vector, cv::NamedTuple, dr::NamedTupl
             δu  = shape_value(cvu, q_point, iu)
             ∇δu = shape_gradient(cvu, q_point, iu)
             # Add contribution to fe
-            fe[Iu] += δu * dΩ
+            fe[Iu] -= δu * dΩ
             # Loop over trial shape functions
             for (jq, Jq) in pairs(drq)
                 q = shape_value(cvq, q_point, jq)
                 # Add contribution to Ke
-                Ke[Iu, Jq] -= (∇δu ⋅ q) * dΩ
+                Ke[Iu, Jq] += (∇δu ⋅ q) * dΩ
             end
         end
         for (iq, Iq) in pairs(drq)
@@ -242,6 +267,7 @@ function assemble_element!(Ke::Matrix, fe::Vector, cv::NamedTuple, dr::NamedTupl
 end
 
 function assemble_global(cellvalues, K::SparseMatrixCSC, dh::DofHandler)
+    grid = dh.grid
     # Allocate the element stiffness matrix and element force vector
     dofranges = (u = dof_range(dh, :u), q = dof_range(dh, :q))
     ncelldofs = ndofs_per_cell(dh)
@@ -251,12 +277,12 @@ function assemble_global(cellvalues, K::SparseMatrixCSC, dh::DofHandler)
     f = zeros(ndofs(dh))
     # Create an assembler
     assembler = start_assemble(K, f)
-    x = copy(getcoordinates(dh.grid, 1))
+    x = copy(getcoordinates(grid, 1))
     dofs = copy(celldofs(dh, 1))
     # Loop over all cels
-    for cellnr in 1:getncells(dh.grid)
+    for cellnr in 1:getncells(grid)
         # Reinitialize cellvalues for this cell
-        cell = getcells(dh.grid, cellnr)
+        cell = getcells(grid, cellnr)
         getcoordinates!(x, grid, cell)
         celldofs!(dofs, dh, cellnr)
         reinit!(cellvalues[:u], x, cell)
@@ -290,9 +316,11 @@ end
 @show norm(u_nodes)/length(u_nodes)
 
 function calculate_flux(dh, dΩ, ip, a)
-    qr = FaceQuadratureRule{RefTriangle}(4)
-    fv = FaceValues(qr, ip, Lagrange{RefTriangle,1}())
     grid = dh.grid
+    qr = FaceQuadratureRule{RefTriangle}(4)
+    ip_geo = Ferrite.default_interpolation(getcelltype(grid))
+    fv = FaceValues(qr, ip, ip_geo)
+
     dofrange = dof_range(dh, :q)
     flux = 0.0
     dofs = celldofs(dh, 1)
@@ -315,9 +343,10 @@ function calculate_flux(dh, dΩ, ip, a)
 end
 
 function calculate_flux_lag(dh, dΩ, ip, a)
-    qr = FaceQuadratureRule{RefTriangle}(4)
-    fv = FaceValues(qr, ip, Lagrange{RefTriangle,1}())
     grid = dh.grid
+    qr = FaceQuadratureRule{RefTriangle}(4)
+    ip_geo = Ferrite.default_interpolation(getcelltype(grid))
+    fv = FaceValues(qr, ip, ip_geo)
     dofrange = dof_range(dh, :u)
     flux = 0.0
     dofs = celldofs(dh, 1)
@@ -341,4 +370,23 @@ end
 
 flux = calculate_flux(dh, ∂Ω, ipq, u)
 flux_lag = calculate_flux_lag(dh, ∂Ω, ipu, u)
-@show flux, flux_lag</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation/">« Heat equation</a><a class="docs-footer-nextpage" href="../heat_equation_triangle/">Heat equation (Triangle) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.0 on <span class="colophon-date" title="Sunday 8 October 2023 14:10">Sunday 8 October 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+@show flux, flux_lag
+
+
+function get_Ke(dh, cellvalues; cellnr=1)
+    dofranges = (u = dof_range(dh, :u), q = dof_range(dh, :q))
+    ncelldofs = ndofs_per_cell(dh)
+    Ke = zeros(ncelldofs, ncelldofs)
+    fe = zeros(ncelldofs)
+    x = getcoordinates(grid, cellnr)
+    cell = getcells(grid, cellnr)
+    reinit!(cellvalues[:u], x, cell)
+    reinit!(cellvalues[:q], x, cell)
+
+    # Reset to 0
+    fill!(Ke, 0)
+    fill!(fe, 0)
+    # Compute element contribution
+    assemble_element!(Ke, fe, cellvalues, dofranges)
+    return Ke
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation/">« Heat equation</a><a class="docs-footer-nextpage" href="../heat_equation_triangle/">Heat equation (Triangle) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.0 on <span class="colophon-date" title="Sunday 8 October 2023 17:03">Sunday 8 October 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

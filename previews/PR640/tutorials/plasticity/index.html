@@ -269,70 +269,70 @@ Iteration: 3 	residual: 0.00002629
 
  Time step @time = 2:
 Iteration: 0 	residual: 159537.60129745
-Iteration: 1 	residual: 1694313.86971061
-Iteration: 2 	residual: 61777.44063574
+Iteration: 1 	residual: 1694313.86971056
+Iteration: 2 	residual: 61777.44063578
 Iteration: 3 	residual: 14.34471356
-Iteration: 4 	residual: 0.00001497
+Iteration: 4 	residual: 0.00001480
 
  Time step @time = 3:
-Iteration: 0 	residual: 159537.60129766
-Iteration: 1 	residual: 3332958.57092703
-Iteration: 2 	residual: 105385.46703527
-Iteration: 3 	residual: 54.03273421
-Iteration: 4 	residual: 0.00002774
+Iteration: 0 	residual: 159537.60129753
+Iteration: 1 	residual: 3262481.75400126
+Iteration: 2 	residual: 188015.79493503
+Iteration: 3 	residual: 200.60040296
+Iteration: 4 	residual: 0.00026816
 
  Time step @time = 4:
-Iteration: 0 	residual: 159537.60129712
-Iteration: 1 	residual: 4211638.89737493
-Iteration: 2 	residual: 116413.77460433
-Iteration: 3 	residual: 73.97038308
-Iteration: 4 	residual: 0.00005587
+Iteration: 0 	residual: 159537.60129719
+Iteration: 1 	residual: 4164932.18144081
+Iteration: 2 	residual: 96850.34562704
+Iteration: 3 	residual: 42.46832307
+Iteration: 4 	residual: 0.00002036
 
  Time step @time = 5:
-Iteration: 0 	residual: 159537.60129777
-Iteration: 1 	residual: 4910242.52143421
-Iteration: 2 	residual: 840207.76604747
-Iteration: 3 	residual: 2994.32873874
-Iteration: 4 	residual: 0.04214688
+Iteration: 0 	residual: 159537.60129782
+Iteration: 1 	residual: 4542150.82966154
+Iteration: 2 	residual: 665038.22581530
+Iteration: 3 	residual: 2045.14791160
+Iteration: 4 	residual: 0.03348474
 
  Time step @time = 6:
-Iteration: 0 	residual: 159537.60129699
-Iteration: 1 	residual: 5848423.30845016
-Iteration: 2 	residual: 1057632.37599934
-Iteration: 3 	residual: 5009.14049593
-Iteration: 4 	residual: 0.11388597
+Iteration: 0 	residual: 159537.60129769
+Iteration: 1 	residual: 6136075.36275800
+Iteration: 2 	residual: 1532500.72346758
+Iteration: 3 	residual: 13313.03202749
+Iteration: 4 	residual: 1.25808773
+Iteration: 5 	residual: 0.00001992
 
  Time step @time = 7:
-Iteration: 0 	residual: 159537.60129718
-Iteration: 1 	residual: 7514576.72481900
-Iteration: 2 	residual: 1834296.05671164
-Iteration: 3 	residual: 20821.48308315
-Iteration: 4 	residual: 3.45934664
-Iteration: 5 	residual: 0.00003181
+Iteration: 0 	residual: 159537.60129721
+Iteration: 1 	residual: 6902938.85583256
+Iteration: 2 	residual: 1580056.29617392
+Iteration: 3 	residual: 12769.82664072
+Iteration: 4 	residual: 0.88692076
 
  Time step @time = 8:
-Iteration: 0 	residual: 159537.60129691
-Iteration: 1 	residual: 8299405.38875498
-Iteration: 2 	residual: 2346832.78315148
-Iteration: 3 	residual: 69610.08727957
-Iteration: 4 	residual: 23.70324210
-Iteration: 5 	residual: 0.00003625
+Iteration: 0 	residual: 159537.60130038
+Iteration: 1 	residual: 8316922.33932112
+Iteration: 2 	residual: 2125225.03753450
+Iteration: 3 	residual: 16284.24849319
+Iteration: 4 	residual: 1.81554052
+Iteration: 5 	residual: 0.00003044
 
  Time step @time = 9:
-Iteration: 0 	residual: 159537.60129814
-Iteration: 1 	residual: 8804423.10227934
-Iteration: 2 	residual: 2165350.26662064
-Iteration: 3 	residual: 53782.34968847
-Iteration: 4 	residual: 14.68785145
-Iteration: 5 	residual: 0.00003413
+Iteration: 0 	residual: 159537.60129730
+Iteration: 1 	residual: 8977169.00349378
+Iteration: 2 	residual: 2067829.86252663
+Iteration: 3 	residual: 16289.14264068
+Iteration: 4 	residual: 1.85850506
+Iteration: 5 	residual: 0.00003517
 
  Time step @time = 10:
-Iteration: 0 	residual: 159537.60129780
-Iteration: 1 	residual: 9745816.09310412
-Iteration: 2 	residual: 1882423.37479880
-Iteration: 3 	residual: 33984.47855119
-Iteration: 4 	residual: 4.08095431
-Iteration: 5 	residual: 0.00003866</code></pre><p>Finally we plot the load-displacement curve.</p><pre><code class="language-julia hljs">using Plots
+Iteration: 0 	residual: 159537.60129848
+Iteration: 1 	residual: 9620617.21564308
+Iteration: 2 	residual: 2026458.85802388
+Iteration: 3 	residual: 34922.23982197
+Iteration: 4 	residual: 4.62034722
+Iteration: 5 	residual: 0.00004101</code></pre><p>Finally we plot the load-displacement curve.</p><pre><code class="language-julia hljs">using Plots
 plot(
     vcat(0.0, u_max),                # add the origin as a point
     vcat(0.0, traction_magnitude),
@@ -342,7 +342,7 @@ plot(
     markershape=:auto
     )
 ylabel!(&quot;Traction [Pa]&quot;)
-xlabel!(&quot;Maximum deflection [m]&quot;)</code></pre><img src="b4b90f7e.svg" alt="Example block output"/><p><em>Figure 2.</em> Load-displacement-curve for the beam, showing a clear decrease in stiffness as more material starts to yield.</p><h2 id="plasticity-plain-program"><a class="docs-heading-anchor" href="#plasticity-plain-program">Plain program</a><a id="plasticity-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#plasticity-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../plasticity.jl"><code>plasticity.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, Tensors, SparseArrays, LinearAlgebra, Printf
+xlabel!(&quot;Maximum deflection [m]&quot;)</code></pre><img src="950f994d.svg" alt="Example block output"/><p><em>Figure 2.</em> Load-displacement-curve for the beam, showing a clear decrease in stiffness as more material starts to yield.</p><h2 id="plasticity-plain-program"><a class="docs-heading-anchor" href="#plasticity-plain-program">Plain program</a><a id="plasticity-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#plasticity-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../plasticity.jl"><code>plasticity.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, Tensors, SparseArrays, LinearAlgebra, Printf
 
 struct J2Plasticity{T, S &lt;: SymmetricTensor{4, 3, T}}
     G::T  # Shear modulus
@@ -641,4 +641,4 @@ plot(
     markershape=:auto
     )
 ylabel!(&quot;Traction [Pa]&quot;)
-xlabel!(&quot;Maximum deflection [m]&quot;)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hyperelasticity/">« Hyperelasticity</a><a class="docs-footer-nextpage" href="../transient_heat_equation/">Transient heat equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.0 on <span class="colophon-date" title="Thursday 12 October 2023 21:33">Thursday 12 October 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+xlabel!(&quot;Maximum deflection [m]&quot;)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hyperelasticity/">« Hyperelasticity</a><a class="docs-footer-nextpage" href="../transient_heat_equation/">Transient heat equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.0 on <span class="colophon-date" title="Thursday 12 October 2023 21:50">Thursday 12 October 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

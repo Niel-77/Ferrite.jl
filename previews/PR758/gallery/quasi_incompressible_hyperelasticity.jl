@@ -253,4 +253,3 @@ linear_p = Lagrange{RefTetrahedron, 1}()
 vol_def = solve(quadratic_u, linear_p)
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

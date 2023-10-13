@@ -248,7 +248,7 @@ end                                                                         #hid
         all_celldofs = celldofs(cell)                                       #hide
         v_celldofs = all_celldofs[dof_range(dh, :v)]                        #hide
         v_cell = u[v_celldofs]                                              #hide
-        coords = get_cell_coordinates(cell)                                       #hide
+        coords = getcoordinates(cell)                                       #hide
         for q_point in 1:getnquadpoints(cellvalues_v)                       #hide
             dΩ = getdetJdV(cellvalues_v, q_point)                           #hide
             coords_qp = spatial_coordinate(cellvalues_v, q_point, coords)   #hide
@@ -260,4 +260,3 @@ end                                                                         #hid
 end;                                                                        #hide
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

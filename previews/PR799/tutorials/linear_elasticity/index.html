@@ -18,37 +18,7 @@
   \boldsymbol{\sigma} : \left(\delta \boldsymbol{u} \otimes \boldsymbol{\nabla} \right)
 \, \mathrm{d}V
 =
-0 \,.\]</p><p>Finally, we choose to operate on a 2-dimensional problem under plain strain conditions. First we load Ferrite, and some other packages we need.</p><pre><code class="language-julia hljs">using Ferrite, FerriteGmsh, SparseArrays</code></pre><p>Like for the Heat Equation example, we will use a unit square - but here we&#39;ll load the grid of the Ferrite logo! This is done by loading <a href="../logo.geo"><code>logo.geo</code></a> with <a href="https://github.com/Ferrite-FEM/FerriteGmsh.jl"><code>FerriteGmsh.jl</code></a> here.</p><pre><code class="language-julia hljs">grid = togrid(&quot;logo.geo&quot;);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Info    : Reading &#39;logo.geo&#39;...
-Info    : Done reading &#39;logo.geo&#39;
-Info    : Meshing 1D...
-Info    : [  0%] Meshing curve 1 (Line)
-Info    : [ 10%] Meshing curve 2 (Line)
-Info    : [ 20%] Meshing curve 3 (Line)
-Info    : [ 20%] Meshing curve 4 (Line)
-Info    : [ 30%] Meshing curve 5 (Line)
-Info    : [ 30%] Meshing curve 6 (Line)
-Info    : [ 40%] Meshing curve 7 (Line)
-Info    : [ 40%] Meshing curve 8 (Line)
-Info    : [ 50%] Meshing curve 9 (Line)
-Info    : [ 50%] Meshing curve 10 (Line)
-Info    : [ 60%] Meshing curve 11 (Line)
-Info    : [ 70%] Meshing curve 12 (Line)
-Info    : [ 70%] Meshing curve 13 (Line)
-Info    : [ 80%] Meshing curve 14 (Line)
-Info    : [ 80%] Meshing curve 15 (Line)
-Info    : [ 90%] Meshing curve 16 (Line)
-Info    : [ 90%] Meshing curve 17 (Line)
-Info    : [100%] Meshing curve 18 (Line)
-Info    : Done meshing 1D (Wall 0.0011153s, CPU 0.001052s)
-Info    : Meshing 2D...
-Info    : [  0%] Meshing surface 1 (Plane, Frontal-Delaunay)
-Info    : [ 20%] Meshing surface 2 (Plane, Frontal-Delaunay)
-Info    : [ 40%] Meshing surface 3 (Plane, Frontal-Delaunay)
-Info    : [ 50%] Meshing surface 4 (Plane, Frontal-Delaunay)
-Info    : [ 70%] Meshing surface 5 (Plane, Frontal-Delaunay)
-Info    : [ 90%] Meshing surface 6 (Plane, Frontal-Delaunay)
-Info    : Done meshing 2D (Wall 0.00254111s, CPU 0.002541s)
-Info    : 104 nodes 245 elements</code></pre><p>By default the grid lacks the facesets for the boundaries, so we add them by Ferrite here. Note that approximate comparison to 0.0 doesn&#39;t work well, so we use a tolerance instead.</p><pre><code class="language-julia hljs">addfaceset!(grid, &quot;top&quot;, x-&gt;x[2] ≈ 1.0)
+0 \,.\]</p><p>Finally, we choose to operate on a 2-dimensional problem under plain strain conditions. First we load Ferrite, and some other packages we need.</p><pre><code class="language-julia hljs">using Ferrite, FerriteGmsh, SparseArrays</code></pre><p>Like for the Heat Equation example, we will use a unit square - but here we&#39;ll load the grid of the Ferrite logo! This is done by loading <a href="../logo.geo"><code>logo.geo</code></a> with <a href="https://github.com/Ferrite-FEM/FerriteGmsh.jl"><code>FerriteGmsh.jl</code></a> here.</p><pre><code class="language-julia hljs">grid = togrid(&quot;logo.geo&quot;);</code></pre><p>By default the grid lacks the facesets for the boundaries, so we add them by Ferrite here. Note that approximate comparison to 0.0 doesn&#39;t work well, so we use a tolerance instead.</p><pre><code class="language-julia hljs">addfaceset!(grid, &quot;top&quot;, x-&gt;x[2] ≈ 1.0)
 addfaceset!(grid, &quot;left&quot;, x-&gt;x[1] &lt; 1e-6)
 addfaceset!(grid, &quot;bottom&quot;, x-&gt;x[2] &lt; 1e-6);</code></pre><h3 id="Trial-and-test-functions"><a class="docs-heading-anchor" href="#Trial-and-test-functions">Trial and test functions</a><a id="Trial-and-test-functions-1"></a><a class="docs-heading-anchor-permalink" href="#Trial-and-test-functions" title="Permalink"></a></h3><p>We use linear Lagrange functions as test and trial functions. The grid is composed of triangular elements, thus we need the Lagrange functions defined on <code>RefTriangle</code>. All currently available interpolations can be found under <a href="../../reference/interpolations/#Ferrite.Interpolation"><code>Interpolation</code></a>.</p><p>Since the displacement field <span>$\boldsymbol{u}$</span> is vector valued, we use vector valued shape functions <span>$\boldsymbol{N}_i$</span> to approximate the test and trial functions:</p><p class="math-container">\[\boldsymbol{u} \approx \sum_{i=1}^N \boldsymbol{N}_i \left(\boldsymbol{x}\right) \, \hat{u}_i
 \qquad
@@ -69,22 +39,7 @@ close!(ch);</code></pre><h3 id="Material-behavior"><a class="docs-heading-anchor
 μ = E / (2(1 + ν)) # 2nd Lamé parameter
 I = one(SymmetricTensor{2, dim}) # 2nd order unit tensor
 II = one(SymmetricTensor{4, dim}) # 4th order symmetric unit tensor
-∂σ∂ε = 2μ * II + λ * (I ⊗ I) # elastic stiffness tensor</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2×2×2×2 SymmetricTensor{4, 2, Float64, 9}:
-[:, :, 1, 1] =
- 2.69231e5  0.0
- 0.0        1.15385e5
-
-[:, :, 2, 1] =
-     0.0  76923.1
- 76923.1      0.0
-
-[:, :, 1, 2] =
-     0.0  76923.1
- 76923.1      0.0
-
-[:, :, 2, 2] =
- 1.15385e5  0.0
- 0.0        2.69231e5</code></pre><h3 id="Element-routine"><a class="docs-heading-anchor" href="#Element-routine">Element routine</a><a id="Element-routine-1"></a><a class="docs-heading-anchor-permalink" href="#Element-routine" title="Permalink"></a></h3><p>The stiffness matrix follows from the weak form such that</p><p class="math-container">\[\left(\underline{\underline{K}}\right)_{ij}
+∂σ∂ε = 2μ * II + λ * (I ⊗ I); # elastic stiffness tensor</code></pre><h3 id="Element-routine"><a class="docs-heading-anchor" href="#Element-routine">Element routine</a><a id="Element-routine-1"></a><a class="docs-heading-anchor-permalink" href="#Element-routine" title="Permalink"></a></h3><p>The stiffness matrix follows from the weak form such that</p><p class="math-container">\[\left(\underline{\underline{K}}\right)_{ij}
 =
 \int_\Omega
   \left(
@@ -130,6 +85,7 @@ u = K \ f;</code></pre><h3 id="Exporting-to-VTK"><a class="docs-heading-anchor" 
     vtk_cellset(vtk, grid) # export cellsets of grains for logo-coloring
 end</code></pre><h2 id="linear_elasticity-plain-program"><a class="docs-heading-anchor" href="#linear_elasticity-plain-program">Plain program</a><a id="linear_elasticity-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#linear_elasticity-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="linear_elasticity"><code>linear_elasticity.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, FerriteGmsh, SparseArrays
 
+FerriteGmsh.Gmsh.initialize() # hide
 grid = togrid(&quot;logo.geo&quot;);
 
 addfaceset!(grid, &quot;top&quot;, x-&gt;x[2] ≈ 1.0)
@@ -159,7 +115,7 @@ E = 200e3 # Young&#39;s modulus [MPa]
 μ = E / (2(1 + ν)) # 2nd Lamé parameter
 I = one(SymmetricTensor{2, dim}) # 2nd order unit tensor
 II = one(SymmetricTensor{4, dim}) # 4th order symmetric unit tensor
-∂σ∂ε = 2μ * II + λ * (I ⊗ I) # elastic stiffness tensor
+∂σ∂ε = 2μ * II + λ * (I ⊗ I); # elastic stiffness tensor
 
 function assemble_cell!(ke, cellvalues, ∂σ∂ε)
     fill!(ke, 0.0)
@@ -205,4 +161,4 @@ u = K \ f;
 vtk_grid(&quot;linear_elasticity&quot;, dh) do vtk
     vtk_point_data(vtk, dh, u)
     vtk_cellset(vtk, grid) # export cellsets of grains for logo-coloring
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation/">« Heat equation</a><a class="docs-footer-nextpage" href="../incompressible_elasticity/">Incompressible elasticity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.0 on <span class="colophon-date" title="Wednesday 1 November 2023 11:18">Wednesday 1 November 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation/">« Heat equation</a><a class="docs-footer-nextpage" href="../incompressible_elasticity/">Incompressible elasticity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.0 on <span class="colophon-date" title="Wednesday 1 November 2023 12:23">Wednesday 1 November 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

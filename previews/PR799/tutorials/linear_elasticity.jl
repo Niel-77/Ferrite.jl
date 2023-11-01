@@ -1,5 +1,7 @@
 using Ferrite, FerriteGmsh, SparseArrays
 
+FerriteGmsh.Gmsh.initialize() # hide
+FerriteGmsh.Gmsh.gmsh.option.set_number("General.Verbosity", 2) #hide
 grid = togrid("logo.geo");
 
 addfaceset!(grid, "top", x->x[2] ≈ 1.0)
@@ -29,7 +31,7 @@ E = 200e3 # Young's modulus [MPa]
 μ = E / (2(1 + ν)) # 2nd Lamé parameter
 I = one(SymmetricTensor{2, dim}) # 2nd order unit tensor
 II = one(SymmetricTensor{4, dim}) # 4th order symmetric unit tensor
-∂σ∂ε = 2μ * II + λ * (I ⊗ I) # elastic stiffness tensor
+∂σ∂ε = 2μ * II + λ * (I ⊗ I); # elastic stiffness tensor
 
 function assemble_cell!(ke, cellvalues, ∂σ∂ε)
     fill!(ke, 0.0)

@@ -42,6 +42,7 @@ function SimpleCellValues(qr::QuadratureRule, ip_fun::Interpolation, ip_geo::Int
 end;
 
 Ferrite.getnbasefunctions(cv::SimpleCellValues) = size(cv.N, 1);
+Ferrite.getnquadpoints(cv::SimpleCellValues) = size(cv.N, 2);
 
 function Ferrite.reinit!(cv::SimpleCellValues, x::Vector{Vec{dim,T}}) where {dim,T}
     for (q_point, w) in pairs(cv.weights) # Loop over each quadrature point

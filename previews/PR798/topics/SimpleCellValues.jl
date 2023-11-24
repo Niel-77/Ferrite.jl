@@ -1,20 +1,24 @@
 using Ferrite, Test
 
 struct SimpleCellValues{T, dim} <: Ferrite.AbstractCellValues
-    N::Matrix{T}             # Precalculated shape values
-    dNdξ::Matrix{Vec{dim,T}} # Precalculated shape gradients in the reference domain
-    dNdx::Matrix{Vec{dim,T}} # Cache for shape gradients in the real domain
-    M::Matrix{T}             # Precalculated geometric shape values
-    dMdξ::Matrix{Vec{dim,T}} # Precalculated geometric shape gradients
-    weights::Vector{T}       # Given quadrature weights in the reference domain
-    detJdV::Vector{T}        # Cache for quadrature weights in the real domain
+    N::Matrix{T}             # Precalculated shape values, N[i, q_point] where i is the
+
+    dNdξ::Matrix{Vec{dim,T}} # Precalculated shape gradients in the reference domain, dNdξ[i, q_point]
+    dNdx::Matrix{Vec{dim,T}} # Cache for shape gradients in the physical domain, dNdx[i, q_point]
+    M::Matrix{T}             # Precalculated geometric shape values, M[j, q_point] where j is the
+
+    dMdξ::Matrix{Vec{dim,T}} # Precalculated geometric shape gradients, dMdξ[j, q_point]
+    weights::Vector{T}       # Given quadrature weights in the reference domain, weights[q_point]
+    detJdV::Vector{T}        # Cache for quadrature weights in the physical domain, detJdV[q_point], i.e.
+
 end;
 
-function SimpleCellValues(qr::QuadratureRule, ip_fun::Interpolation, ip_geo::Interpolation, T=Float64)
+function SimpleCellValues(qr::QuadratureRule, ip_fun::Interpolation, ip_geo::Interpolation)
     dim = Ferrite.getdim(ip_fun)
     # Quadrature weights and coordinates (in reference cell)
     weights = Ferrite.getweights(qr)
     n_qpoints = length(weights)
+    T = eltype(weights)
 
     # Function interpolation
     n_func_basefuncs = getnbasefunctions(ip_fun)

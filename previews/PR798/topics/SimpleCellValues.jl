@@ -46,8 +46,10 @@ function SimpleCellValues(qr::QuadratureRule, ip_fun::Interpolation, ip_geo::Int
     SimpleCellValues(N, dNdξ, dNdx, M, dMdξ, weights, detJdV)
 end;
 
-Ferrite.getnbasefunctions(cv::SimpleCellValues) = size(cv.N, 1);
-Ferrite.getnquadpoints(cv::SimpleCellValues) = size(cv.N, 2);
+Ferrite.getnbasefunctions(cv::SimpleCellValues) = size(cv.N, 1)
+Ferrite.getnquadpoints(cv::SimpleCellValues) = size(cv.N, 2)
+Ferrite.shape_value(cv::SimpleCellValues, q_point::Int, i::Int) = cv.N[i, q_point]
+Ferrite.shape_gradient(cv::SimpleCellValues, q_point::Int, i::Int) = cv.dNdx[i, q_point];
 
 function Ferrite.reinit!(cv::SimpleCellValues, x::Vector{Vec{dim,T}}) where {dim,T}
     for (q_point, w) in pairs(cv.weights) # Loop over each quadrature point
@@ -66,18 +68,15 @@ function Ferrite.reinit!(cv::SimpleCellValues, x::Vector{Vec{dim,T}}) where {dim
     end
 end;
 
-Ferrite.shape_value(cv::SimpleCellValues, q_point::Int, i::Int) = cv.N[i, q_point]
-Ferrite.shape_gradient(cv::SimpleCellValues, q_point::Int, i::Int) = cv.dNdx[i, q_point]
-
 qr = QuadratureRule{RefQuadrilateral}(2)
 ip = Lagrange{RefQuadrilateral,1}()
 simple_cv = SimpleCellValues(qr, ip, ip)
-cv = CellValues(qr, ip, ip)
+cv = CellValues(qr, ip, ip);
 
 grid = generate_grid(Quadrilateral, (2,2))
 x = getcoordinates(grid, 2)
 reinit!(simple_cv, x)
-reinit!(cv, x)
+reinit!(cv, x);
 
 ue = rand(getnbasefunctions(simple_cv))
 q_point = 2

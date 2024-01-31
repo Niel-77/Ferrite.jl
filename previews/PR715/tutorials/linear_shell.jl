@@ -63,7 +63,7 @@ for cell in CellIterator(grid)
     fill!(ke, 0.0)
     reinit!(cv, cell)
     celldofs!(celldofs, dh, cellid(cell))
-    get_cell_coordinates!(cellcoords, grid, cellid(cell))
+    getcoordinates!(cellcoords, grid, cellid(cell))
 
     #Call the element routine
     integrate_shell!(ke, cv, qr_ooplane, cellcoords, data)
@@ -173,6 +173,8 @@ function strain(dofvec::Vector{T}, N, dNdx, ζ, dζdx, q, ef1, ef2, h) where T
     return ε
 end;
 
+shape_reference_gradient(cv::CellValues, q_point, i) = cv.fun_values.dNdξ[i, q_point]
+
 function integrate_shell!(ke, cv, qr_ooplane, X, data)
     nnodes = getnbasefunctions(cv)
     ndofs = nnodes*5
@@ -190,9 +192,9 @@ function integrate_shell!(ke, cv, qr_ooplane, X, data)
     ef1, ef2, ef3 = fiber_coordsys(p)
 
     for iqp in 1:getnquadpoints(cv)
-        N = cv.N[:,iqp]
-        dNdξ = cv.dNdξ[:,iqp]
-        dNdx = cv.dNdx[:,iqp]
+        N = [shape_value(cv, iqp, i) for i in 1:nnodes]
+        dNdξ = [shape_reference_gradient(cv, iqp, i) for i in 1:nnodes]
+        dNdx = [shape_gradient(cv, iqp, i) for i in 1:nnodes]
 
         for oqp in 1:length(qr_ooplane.weights)
             ζ = qr_ooplane.points[oqp][1]
@@ -215,4 +217,3 @@ end;
 main()
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

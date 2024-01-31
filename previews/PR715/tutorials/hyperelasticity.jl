@@ -10,7 +10,7 @@ function Ψ(C, mp::NeoHooke)
     λ = mp.λ
     Ic = tr(C)
     J = sqrt(det(C))
-    return μ / 2 * (Ic - 3) - μ * log(J) + λ / 2 * log(J)^2
+    return μ / 2 * (Ic - 3 - 2 * log(J)) + λ / 2 * (J - 1)^2
 end
 
 function constitutive_driver(C, mp::NeoHooke)
@@ -205,4 +205,3 @@ end
 u = solve();
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

@@ -16,7 +16,7 @@ end;</code></pre><p>Next we define a function to set up our cell- and facevalues
     face_qr = FaceQuadratureRule{RefTriangle}(3)
 
     # Cell values, for both fields
-    cellvalues = MultiCellValues(qr, (u=interpolation_u, p=interpolation_p))
+    cellvalues = CellMultiValues(qr, (u=interpolation_u, p=interpolation_p))
 
     # Face values (only for the displacement, u)
     facevalues_u = FaceValues(face_qr, interpolation_u)
@@ -37,7 +37,7 @@ end;</code></pre><p>The material is linear elastic, which is here specified by t
     G::T
     K::T
 end</code></pre><p>Now to the assembling of the stiffness matrix. This mixed formulation leads to a blocked element matrix. Since Ferrite does not force us to use any particular matrix type we will use a <code>PseudoBlockArray</code> from <code>BlockArrays.jl</code>.</p><pre><code class="language-julia hljs">function doassemble(
-        cellvalues::MultiCellValues, facevalues_u::FaceValues,
+        cellvalues::CellMultiValues, facevalues_u::FaceValues,
         K::SparseMatrixCSC, grid::Grid, dh::DofHandler, mp::LinearElasticity
         )
 
@@ -120,7 +120,7 @@ function symmetrize_lower!(Ke)
     end
 end;</code></pre><p>To evaluate the stresses after solving the problem we once again loop over the cells in the grid. Stresses are evaluated in the quadrature points, however, for export/visualization you typically want values in the nodes of the mesh, or as single data points per cell. For the former you can project the quadrature point data to a finite element space (see the example with the <code>L2Projector</code> in <a href="../../howto/postprocessing/#howto-postprocessing">Post processing and visualization</a>). In this example we choose to compute the mean value of the stress within each cell, and thus end up with one data point per cell. The mean value is computed as</p><p class="math-container">\[\bar{\boldsymbol{\sigma}}_i = \frac{1}{ |\Omega_i|}
 \int_{\Omega_i} \boldsymbol{\sigma}\, \mathrm{d}\Omega, \quad
-|\Omega_i| = \int_{\Omega_i} 1\, \mathrm{d}\Omega\]</p><p>where <span>$\Omega_i$</span> is the domain occupied by cell number <span>$i$</span>, and <span>$|\Omega_i|$</span> the volume (area) of the cell. The integrals are evaluated using numerical quadrature with the help of cellvalues for u and p, just like in the assembly procedure.</p><p>Note that even though all strain components in the out-of-plane direction are zero (plane strain) the stress components are not. Specifically, <span>$\sigma_{33}$</span> will be non-zero in this formulation. Therefore we expand the strain to a 3D tensor, and then compute the (3D) stress tensor.</p><pre><code class="language-julia hljs">function compute_stresses(cellvalues::MultiCellValues, dh::DofHandler, mp::LinearElasticity, a::Vector)
+|\Omega_i| = \int_{\Omega_i} 1\, \mathrm{d}\Omega\]</p><p>where <span>$\Omega_i$</span> is the domain occupied by cell number <span>$i$</span>, and <span>$|\Omega_i|$</span> the volume (area) of the cell. The integrals are evaluated using numerical quadrature with the help of cellvalues for u and p, just like in the assembly procedure.</p><p>Note that even though all strain components in the out-of-plane direction are zero (plane strain) the stress components are not. Specifically, <span>$\sigma_{33}$</span> will be non-zero in this formulation. Therefore we expand the strain to a 3D tensor, and then compute the (3D) stress tensor.</p><pre><code class="language-julia hljs">function compute_stresses(cellvalues::CellMultiValues, dh::DofHandler, mp::LinearElasticity, a::Vector)
     ae = zeros(ndofs_per_cell(dh)) # local solution vector
     u_range = dof_range(dh, :u)    # local range of dofs corresponding to u
     p_range = dof_range(dh, :p)    # local range of dofs corresponding to p
@@ -215,7 +215,7 @@ function create_values(interpolation_u, interpolation_p)
     face_qr = FaceQuadratureRule{RefTriangle}(3)
 
     # Cell values, for both fields
-    cellvalues = MultiCellValues(qr, (u=interpolation_u, p=interpolation_p))
+    cellvalues = CellMultiValues(qr, (u=interpolation_u, p=interpolation_p))
 
     # Face values (only for the displacement, u)
     facevalues_u = FaceValues(face_qr, interpolation_u)
@@ -244,7 +244,7 @@ struct LinearElasticity{T}
 end
 
 function doassemble(
-        cellvalues::MultiCellValues, facevalues_u::FaceValues,
+        cellvalues::CellMultiValues, facevalues_u::FaceValues,
         K::SparseMatrixCSC, grid::Grid, dh::DofHandler, mp::LinearElasticity
         )
 
@@ -329,7 +329,7 @@ function symmetrize_lower!(Ke)
     end
 end;
 
-function compute_stresses(cellvalues::MultiCellValues, dh::DofHandler, mp::LinearElasticity, a::Vector)
+function compute_stresses(cellvalues::CellMultiValues, dh::DofHandler, mp::LinearElasticity, a::Vector)
     ae = zeros(ndofs_per_cell(dh)) # local solution vector
     u_range = dof_range(dh, :u)    # local range of dofs corresponding to u
     p_range = dof_range(dh, :p)    # local range of dofs corresponding to p
@@ -409,4 +409,4 @@ linear_u    = Lagrange{RefTriangle,1}()^2
 quadratic_u = Lagrange{RefTriangle,2}()^2
 
 u1 = solve(0.5, linear_u,    linear_p);
-u2 = solve(0.5, quadratic_u, linear_p);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../linear_elasticity/">« Linear elasticity</a><a class="docs-footer-nextpage" href="../hyperelasticity/">Hyperelasticity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Thursday 11 January 2024 21:56">Thursday 11 January 2024</span>. Using Julia version 1.10.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+u2 = solve(0.5, quadratic_u, linear_p);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../linear_elasticity/">« Linear elasticity</a><a class="docs-footer-nextpage" href="../hyperelasticity/">Hyperelasticity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Saturday 24 February 2024 14:41">Saturday 24 February 2024</span>. Using Julia version 1.10.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

@@ -19,7 +19,7 @@ function create_values(interpolation_u, interpolation_p)
     face_qr = FaceQuadratureRule{RefTriangle}(3)
 
     # Cell values, for both fields
-    cellvalues = MultiCellValues(qr, (u=interpolation_u, p=interpolation_p))
+    cellvalues = CellMultiValues(qr, (u=interpolation_u, p=interpolation_p))
 
     # Face values (only for the displacement, u)
     facevalues_u = FaceValues(face_qr, interpolation_u)
@@ -48,7 +48,7 @@ struct LinearElasticity{T}
 end
 
 function doassemble(
-        cellvalues::MultiCellValues, facevalues_u::FaceValues,
+        cellvalues::CellMultiValues, facevalues_u::FaceValues,
         K::SparseMatrixCSC, grid::Grid, dh::DofHandler, mp::LinearElasticity
         )
 
@@ -133,7 +133,7 @@ function symmetrize_lower!(Ke)
     end
 end;
 
-function compute_stresses(cellvalues::MultiCellValues, dh::DofHandler, mp::LinearElasticity, a::Vector)
+function compute_stresses(cellvalues::CellMultiValues, dh::DofHandler, mp::LinearElasticity, a::Vector)
     ae = zeros(ndofs_per_cell(dh)) # local solution vector
     u_range = dof_range(dh, :u)    # local range of dofs corresponding to u
     p_range = dof_range(dh, :p)    # local range of dofs corresponding to p

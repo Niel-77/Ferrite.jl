@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VTKFile type="Collection" version="1.0" byte_order="LittleEndian" compressor="vtkZLibDataCompressor">
+  <Collection>
+    <DataSet timestep="1" part="0" file="heat_amr-iteration_1.vtu"/>
+    <DataSet timestep="2" part="0" file="heat_amr-iteration_2.vtu"/>
+    <DataSet timestep="3" part="0" file="heat_amr-iteration_3.vtu"/>
+    <DataSet timestep="4" part="0" file="heat_amr-iteration_4.vtu"/>
+    <DataSet timestep="5" part="0" file="heat_amr-iteration_5.vtu"/>
+    <DataSet timestep="6" part="0" file="heat_amr-iteration_6.vtu"/>
+    <DataSet timestep="7" part="0" file="heat_amr-iteration_7.vtu"/>
+    <DataSet timestep="8" part="0" file="heat_amr-iteration_8.vtu"/>
+  </Collection>
+</VTKFile>

@@ -145,7 +145,7 @@ function setup_constraints(dh, fvp)
     ch = ConstraintHandler(dh)
     # Periodic BC
     R = rotation_tensor(π / 2)
-    periodic_faces = collect_periodic_faces(dh.grid, "Γ3", "Γ1", x -> R ⋅ x)
+    periodic_faces = collect_periodic_facets(dh.grid, "Γ3", "Γ1", x -> R ⋅ x)
     periodic = PeriodicDirichlet(:u, periodic_faces, R, [1, 2])
     add!(ch, periodic)
     # Dirichlet BC

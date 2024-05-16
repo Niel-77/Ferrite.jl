@@ -1,3 +1,6 @@
+abstract type AbstractSparseAssembler end
+abstract type AbstractSparseCSCAssembler <: AbstractSparseAssembler end
+
 struct Assembler{T}
     I::Vector{Int}
     J::Vector{Int}
@@ -89,9 +92,6 @@ Assembles the element residual `ge` into the global residual vector `g`.
     end
 end
 
-abstract type AbstractSparseAssembler end
-abstract type AbstractSparseAssemblerCSC <: AbstractSparseAssembler end
-
 """
     matrix_handle(a::AbstractSparseAssembler)
     vector_handle(a::AbstractSparseAssembler)
@@ -100,20 +100,20 @@ Return a reference to the underlying matrix/vector of the assembler.
 """
 matrix_handle, vector_handle
 
-struct CSCAssembler{Tv,Ti,MT<:AbstractSparseMatrixCSC{Tv,Ti}} <: AbstractSparseAssemblerCSC
+struct CSCAssembler{Tv,Ti,MT<:AbstractSparseMatrixCSC{Tv,Ti}} <: AbstractSparseCSCAssembler
     K::MT
     f::Vector{Tv}
     permutation::Vector{Int}
     sorteddofs::Vector{Int}
 end
-struct SymmetricCSCAssembler{Tv,Ti, MT <: Symmetric{Tv,<:AbstractSparseMatrixCSC{Tv,Ti}}} <: AbstractSparseAssemblerCSC
+struct SymmetricCSCAssembler{Tv,Ti, MT <: Symmetric{Tv,<:AbstractSparseMatrixCSC{Tv,Ti}}} <: AbstractSparseCSCAssembler
     K::MT
     f::Vector{Tv}
     permutation::Vector{Int}
     sorteddofs::Vector{Int}
 end
 
-function Base.show(io::IO, ::MIME"text/plain", a::AbstractSparseAssemblerCSC)
+function Base.show(io::IO, ::MIME"text/plain", a::AbstractSparseCSCAssembler)
     print(io, typeof(a), " for assembling into:\n - ")
     summary(io, a.K)
     if !isempty(a.f)
@@ -122,9 +122,9 @@ function Base.show(io::IO, ::MIME"text/plain", a::AbstractSparseAssemblerCSC)
     end
 end
 
-matrix_handle(a::AbstractSparseAssemblerCSC) = a.K
+matrix_handle(a::AbstractSparseCSCAssembler) = a.K
 matrix_handle(a::SymmetricCSCAssembler) = a.K.data
-vector_handle(a::AbstractSparseAssemblerCSC) = a.f
+vector_handle(a::AbstractSparseCSCAssembler) = a.f
 
 """
     start_assemble(K::AbstractSparseMatrixCSC;            fillzero::Bool=true) -> CSCAssembler
@@ -191,7 +191,7 @@ end
     return sorteddofs, permutation
 end
 
-@propagate_inbounds function _assemble!(A::AbstractSparseAssembler, dofs::AbstractVector{<:Integer}, Ke::AbstractMatrix, fe::AbstractVector, sym::Bool)
+@propagate_inbounds function _assemble!(A::AbstractSparseCSCAssembler, dofs::AbstractVector{<:Integer}, Ke::AbstractMatrix, fe::AbstractVector, sym::Bool)
     ld = length(dofs)
     @boundscheck checkbounds(Ke, keys(dofs), keys(dofs))
     if length(fe) != 0

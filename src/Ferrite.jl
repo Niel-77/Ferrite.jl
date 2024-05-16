@@ -14,7 +14,8 @@ using LinearAlgebra:
 using NearestNeighbors:
     NearestNeighbors, KDTree, knn
 using SparseArrays:
-    SparseArrays, SparseMatrixCSC, nonzeros, nzrange, rowvals, sparse, spzeros
+    SparseArrays, SparseMatrixCSC, nonzeros, nzrange, rowvals, sparse, spzeros,
+    AbstractSparseMatrixCSC
 using StaticArrays:
     StaticArrays, MMatrix, SMatrix, SVector
 using Tensors:

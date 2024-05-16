@@ -165,18 +165,18 @@ stiffness (and force) in `A`, given the element degrees of freedom `dofs`.
 This is equivalent to `K[dofs, dofs] += Ke` and `f[dofs] += fe`, where `K` is the global
 stiffness matrix and `f` the global force/residual vector, but more efficient.
 """
-assemble!(::AbstractSparseAssembler, ::AbstractVector{Int}, ::AbstractMatrix, ::AbstractVector)
+assemble!(::AbstractSparseAssembler, ::AbstractVector{<:Integer}, ::AbstractMatrix, ::AbstractVector)
 
-@propagate_inbounds function assemble!(A::AbstractSparseAssembler, dofs::AbstractVector{Int}, Ke::AbstractMatrix)
+@propagate_inbounds function assemble!(A::AbstractSparseAssembler, dofs::AbstractVector{<:Integer}, Ke::AbstractMatrix)
     assemble!(A, dofs, Ke, eltype(Ke)[])
 end
-@propagate_inbounds function assemble!(A::AbstractSparseAssembler, dofs::AbstractVector{Int}, fe::AbstractVector, Ke::AbstractMatrix)
+@propagate_inbounds function assemble!(A::AbstractSparseAssembler, dofs::AbstractVector{<:Integer}, fe::AbstractVector, Ke::AbstractMatrix)
     assemble!(A, dofs, Ke, fe)
 end
-@propagate_inbounds function assemble!(A::AbstractSparseAssembler, dofs::AbstractVector{Int}, Ke::AbstractMatrix, fe::AbstractVector)
+@propagate_inbounds function assemble!(A::AbstractSparseAssembler, dofs::AbstractVector{<:Integer}, Ke::AbstractMatrix, fe::AbstractVector)
     _assemble!(A, dofs, Ke, fe, false)
 end
-@propagate_inbounds function assemble!(A::SymmetricCSCAssembler, dofs::AbstractVector{Int}, Ke::AbstractMatrix, fe::AbstractVector)
+@propagate_inbounds function assemble!(A::SymmetricCSCAssembler, dofs::AbstractVector{<:Integer}, Ke::AbstractMatrix, fe::AbstractVector)
     _assemble!(A, dofs, Ke, fe, true)
 end
 
@@ -191,7 +191,7 @@ end
     return sorteddofs, permutation
 end
 
-@propagate_inbounds function _assemble!(A::AbstractSparseAssembler, dofs::AbstractVector{Int}, Ke::AbstractMatrix, fe::AbstractVector, sym::Bool)
+@propagate_inbounds function _assemble!(A::AbstractSparseAssembler, dofs::AbstractVector{<:Integer}, Ke::AbstractMatrix, fe::AbstractVector, sym::Bool)
     ld = length(dofs)
     @boundscheck checkbounds(Ke, keys(dofs), keys(dofs))
     if length(fe) != 0

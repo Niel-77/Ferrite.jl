@@ -113,12 +113,13 @@ struct SymmetricCSCAssembler{Tv,Ti, MT <: Symmetric{Tv,<:AbstractSparseMatrixCSC
     sorteddofs::Vector{Int}
 end
 
-function Base.show(io::IO, ::MIME"text/plain", a::AbstractSparseCSCAssembler)
+function Base.show(io::IO, ::MIME"text/plain", a::AbstractSparseAssembler)
     print(io, typeof(a), " for assembling into:\n - ")
-    summary(io, a.K)
-    if !isempty(a.f)
+    summary(io, matrix_handle(a))
+    f = vector_handle(a)
+    if !isempty(f)
         print(io, "\n - ")
-        summary(io, a.f)
+        summary(io, f)
     end
 end
 

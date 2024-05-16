@@ -73,7 +73,7 @@ end;
 #
 # ScratchValues is a thread-local collection of data that each thread needs to own,
 # since we need to be able to mutate the data in the threads independently
-struct ScratchValues{T, CV <: CellValues, FV <: FaceValues, TT <: AbstractTensor, dim, AT <: Ferrite.AbstractSparseAssembler{T}}
+struct ScratchValues{T, CV <: CellValues, FV <: FaceValues, TT <: AbstractTensor, dim, AT <: Ferrite.AbstractSparseAssembler}
     Ke::Matrix{T}
     fe::Vector{T}
     cellvalues::CV

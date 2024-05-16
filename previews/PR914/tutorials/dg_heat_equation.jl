@@ -8,10 +8,10 @@ order = 1;
 ip = DiscontinuousLagrange{RefQuadrilateral, order}();
 qr = QuadratureRule{RefQuadrilateral}(2);
 
-face_qr = FaceQuadratureRule{RefQuadrilateral}(2);
+facet_qr = FacetQuadratureRule{RefQuadrilateral}(2);
 cellvalues = CellValues(qr, ip);
-facetvalues = FacetValues(face_qr, ip);
-interfacevalues = InterfaceValues(face_qr, ip);
+facetvalues = FacetValues(facet_qr, ip);
+interfacevalues = InterfaceValues(facet_qr, ip);
 
 getdistance(p1::Vec{N, T},p2::Vec{N, T}) where {N, T} = norm(p1-p2);
 getdiameter(cell_coords::Vector{Vec{N, T}}) where {N, T} = maximum(getdistance.(cell_coords, reshape(cell_coords, (1,:))));

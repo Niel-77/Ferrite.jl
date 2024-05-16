@@ -126,8 +126,8 @@ end</code></pre><h3 id="Degrees-of-freedom"><a class="docs-heading-anchor" href=
     qr = QuadratureRule{RefTriangle}(2)
     cvu = CellValues(qr, ipu, ipg)
     cvp = CellValues(qr, ipp, ipg)
-    qr_face = FaceQuadratureRule{RefTriangle}(2)
-    fvp = FacetValues(qr_face, ipp, ipg)
+    qr_facet = FacetQuadratureRule{RefTriangle}(2)
+    fvp = FacetValues(qr_facet, ipp, ipg)
     return cvu, cvp, fvp
 end</code></pre><p>The <code>setup_dofs</code> function creates the <code>DofHandler</code>, and adds the two fields: a vector field <code>:u</code> with interpolation <code>ipu</code>, and a scalar field <code>:p</code> with interpolation <code>ipp</code>.</p><pre><code class="language-julia hljs">function setup_dofs(grid, ipu, ipp)
     dh = DofHandler(grid)
@@ -363,8 +363,8 @@ function setup_fevalues(ipu, ipp, ipg)
     qr = QuadratureRule{RefTriangle}(2)
     cvu = CellValues(qr, ipu, ipg)
     cvp = CellValues(qr, ipp, ipg)
-    qr_face = FaceQuadratureRule{RefTriangle}(2)
-    fvp = FacetValues(qr_face, ipp, ipg)
+    qr_facet = FacetQuadratureRule{RefTriangle}(2)
+    fvp = FacetValues(qr_facet, ipp, ipg)
     return cvu, cvp, fvp
 end
 
@@ -525,4 +525,4 @@ function main()
     return
 end
 
-main()</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../computational_homogenization/">« Computational homogenization</a><a class="docs-footer-nextpage" href="../porous_media/">Porous media »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Wednesday 15 May 2024 16:06">Wednesday 15 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+main()</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../computational_homogenization/">« Computational homogenization</a><a class="docs-footer-nextpage" href="../porous_media/">Porous media »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Thursday 16 May 2024 08:45">Thursday 16 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

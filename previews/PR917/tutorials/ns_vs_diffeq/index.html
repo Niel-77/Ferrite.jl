@@ -43,7 +43,7 @@ gmsh.model.occ.cut([(dim,rect_tag)],[(dim,circle_surf_tag)]);</code></pre><pre c
 lefttag = gmsh.model.model.add_physical_group(dim-1,[7],-1,&quot;left&quot;)
 righttag = gmsh.model.model.add_physical_group(dim-1,[8],-1,&quot;right&quot;)
 toptag = gmsh.model.model.add_physical_group(dim-1,[9],-1,&quot;top&quot;)
-holetag = gmsh.model.model.add_physical_group(dim-1,[5],-1,&quot;hole&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">10</code></pre><p>Since we want a quad mesh, we specify the meshing algorithm to the quasi structured quad one. For a complete list, <a href="https://gmsh.info/doc/texinfo/gmsh.html#Mesh-options-list">see the Gmsh docs</a>.</p><pre><code class="language-julia hljs">gmsh.option.setNumber(&quot;Mesh.Algorithm&quot;,11)
+holetag = gmsh.model.model.add_physical_group(dim-1,[5],-1,&quot;hole&quot;);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">10</code></pre><p>Since we want a quad mesh, we specify the meshing algorithm to the quasi structured quad one. For a complete list, <a href="https://gmsh.info/doc/texinfo/gmsh.html#Mesh-options-list">see the Gmsh docs</a>.</p><pre><code class="language-julia hljs">gmsh.option.setNumber(&quot;Mesh.Algorithm&quot;,11)
 gmsh.option.setNumber(&quot;Mesh.MeshSizeFromCurvature&quot;,20)
 gmsh.option.setNumber(&quot;Mesh.MeshSizeMax&quot;,0.05)</code></pre><p>In the next step, the mesh is generated and finally translated.</p><pre><code class="language-julia hljs">gmsh.model.mesh.generate(dim)
 grid = togrid()
@@ -214,7 +214,7 @@ function navierstokes_jac_element!(Jₑ, vₑ, cellvalues_v)
     end
 end
 
-function navierstokes_jac!(J,u_uc,p,t)</code></pre><p>Unpack the struct to save some allocations.</p><pre><code class="language-julia hljs">    @unpack K,ch,dh,cellvalues_v,u = p</code></pre><p>We start by applying the time-dependent Dirichlet BCs. Note that we are not allowed to mutate <code>u_uc</code>, so we use our buffer again.</p><pre><code class="language-julia hljs">    u .= u_uc
+function navierstokes_jac!(J,u_uc,p,t)</code></pre><p>Unpack the struct to save some allocations.</p><pre><code class="language-julia hljs">    @unpack K, ch, dh, cellvalues_v, u = p</code></pre><p>We start by applying the time-dependent Dirichlet BCs. Note that we are not allowed to mutate <code>u_uc</code>, so we use our buffer again.</p><pre><code class="language-julia hljs">    u .= u_uc
     update!(ch, t)
     apply!(u, ch)</code></pre><p>Now we apply the Jacobian of the Navier-Stokes equations.</p><pre><code class="language-julia hljs">    # Linear contribution (Stokes operator)
     # Here we assume that J has exactly the same structure as K by construction
@@ -340,7 +340,7 @@ bottomtag = gmsh.model.model.add_physical_group(dim-1,[6],-1,&quot;bottom&quot;)
 lefttag = gmsh.model.model.add_physical_group(dim-1,[7],-1,&quot;left&quot;)
 righttag = gmsh.model.model.add_physical_group(dim-1,[8],-1,&quot;right&quot;)
 toptag = gmsh.model.model.add_physical_group(dim-1,[9],-1,&quot;top&quot;)
-holetag = gmsh.model.model.add_physical_group(dim-1,[5],-1,&quot;hole&quot;)
+holetag = gmsh.model.model.add_physical_group(dim-1,[5],-1,&quot;hole&quot;);
 end # hide
 
 gmsh.option.setNumber(&quot;Mesh.Algorithm&quot;,11)
@@ -549,7 +549,7 @@ end
 
 function navierstokes_jac!(J,u_uc,p,t)
 
-    @unpack K,ch,dh,cellvalues_v,u = p
+    @unpack K, ch, dh, cellvalues_v, u = p
 
     u .= u_uc
     update!(ch, t)
@@ -608,4 +608,4 @@ for (u,t) in intervals(integrator)
         pvd[t] = vtk
     end
 end
-vtk_save(pvd);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../porous_media/">« Porous media</a><a class="docs-footer-nextpage" href="../linear_shell/">Linear shell »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Friday 17 May 2024 17:09">Friday 17 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+vtk_save(pvd);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../porous_media/">« Porous media</a><a class="docs-footer-nextpage" href="../linear_shell/">Linear shell »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Friday 17 May 2024 17:12">Friday 17 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

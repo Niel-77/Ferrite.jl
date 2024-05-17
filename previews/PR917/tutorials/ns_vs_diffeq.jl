@@ -252,7 +252,6 @@ function navierstokes_jac_element!(Jₑ, vₑ, cellvalues_v)
 end
 
 function navierstokes_jac!(J,u_uc,p,t)
-    @show "jac 1"
 
     @unpack K,ch,dh,cellvalues_v,u = p
 

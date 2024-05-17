@@ -19,7 +19,7 @@ circle_curve_tag = gmsh.model.occ.add_curve_loop([circle_tag])
 circle_surf_tag = gmsh.model.occ.add_plane_surface([circle_curve_tag])
 gmsh.model.occ.cut([(dim,rect_tag)],[(dim,circle_surf_tag)]);
 else                                                                                                #hide
-rect_tag = gmsh.model.occ.add_rectangle(0, 0, 0, 0.55, 0.41)                                        #hide
+rect_tag = gmsh.model.occ.add_rectangle(0, 0, 0, 0.55, 0.41);                                       #hide
 end                                                                                                 #hide
 
 gmsh.model.occ.synchronize()
@@ -34,7 +34,7 @@ else                                                                            
 gmsh.model.model.add_physical_group(dim-1,[4],7,"left")                                             #hide
 gmsh.model.model.add_physical_group(dim-1,[3],8,"top")                                              #hide
 gmsh.model.model.add_physical_group(dim-1,[2],9,"right")                                            #hide
-gmsh.model.model.add_physical_group(dim-1,[1],10,"bottom")                                          #hide
+gmsh.model.model.add_physical_group(dim-1,[1],10,"bottom");                                         #hide
 end # hide
 
 gmsh.option.setNumber("Mesh.Algorithm",11)
@@ -42,12 +42,12 @@ gmsh.option.setNumber("Mesh.MeshSizeFromCurvature",20)
 gmsh.option.setNumber("Mesh.MeshSizeMax",0.05)
 if IS_CI                                                                                             #hide
 gmsh.option.setNumber("Mesh.MeshSizeFromCurvature",20)                                               #hide
-gmsh.option.setNumber("Mesh.MeshSizeMax",0.15)                                                        #hide
+gmsh.option.setNumber("Mesh.MeshSizeMax",0.15)                                                       #hide
 end                                                                                                  #hide
 
 gmsh.model.mesh.generate(dim)
 grid = togrid()
-Gmsh.finalize()
+Gmsh.finalize();
 
 ip_v = Lagrange{RefQuadrilateral, 2}()^dim
 qr = QuadratureRule{RefQuadrilateral}(4)
@@ -304,7 +304,6 @@ integrator = init(
 pvd = paraview_collection("vortex-street.pvd");
 
 for (u,t) in intervals(integrator)
-    @show t
 
     vtk_grid("vortex-street-$t.vtu", dh) do vtk
         vtk_point_data(vtk,dh,u)
@@ -353,5 +352,6 @@ end                                                                         #hid
     end                                                                     #hide
     @test isapprox(sqrt(Δv), 0.0, atol=1e-3)                                #hide
 end;                                                                        #hide
+nothing                                                                     #hide
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

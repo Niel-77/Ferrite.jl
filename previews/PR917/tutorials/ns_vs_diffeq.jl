@@ -292,7 +292,7 @@ end
 (fe_norm::FreeDofErrorNorm)(u::Union{AbstractFloat, Complex}, t) = DiffEqBase.ODE_DEFAULT_NORM(u, t)
 (fe_norm::FreeDofErrorNorm)(u::AbstractArray, t) = DiffEqBase.ODE_DEFAULT_NORM(u[fe_norm.ch.free_dofs], t)
 
-timestepper = ImplicitEuler(step_limiter! = ferrite_limiter!)
+timestepper = ImplicitEuler(step_limiter! = ferrite_limiter!);
 
 integrator = init(
     problem, timestepper, initializealg=NoInit(), dt=Δt₀,

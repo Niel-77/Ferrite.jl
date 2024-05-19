@@ -83,10 +83,10 @@ function LandauModel(α, G, gridsize, left::Vec{DIM, T}, right::Vec{DIM, T}, elp
     return LandauModel(dofvector, dofhandler, boundaryconds, threadindices, caches)
 end
 
-function Ferrite.vtk_save(path, model, dofs=model.dofs)
-    vtkfile = vtk_grid(path, model.dofhandler)
-    vtk_point_data(vtkfile, model.dofhandler, dofs)
-    vtk_save(vtkfile)
+function save_landau(path, model, dofs=model.dofs)
+    VTKFile(path, model.dofhandler) do vtk
+        write_solution(vtk, model.dofhandler, dofs)
+    end
 end
 
 macro assemble!(innerbody)
@@ -209,8 +209,8 @@ left = Vec{3}((-75.,-25.,-2.))
 right = Vec{3}((75.,25.,2.))
 model = LandauModel(α, G, (50, 50, 2), left, right, element_potential)
 
-vtk_save("landauorig", model)
+save_landau("landauorig", model)
 @time minimize!(model)
-vtk_save("landaufinal", model)
+save_landau("landaufinal", model)
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

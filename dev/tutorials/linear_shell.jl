@@ -74,8 +74,8 @@ end
 apply!(K, f, ch)
 a = K\f
 
-vtk_grid("linear_shell", dh) do vtk
-    vtk_point_data(vtk, dh, a)
+VTKFile("linear_shell", dh) do vtk
+    write_solution(vtk, dh, a)
 end
 
 end; #end main functions

@@ -28,26 +28,26 @@ end;</code></pre><h3 id="Stiffness-tensor-for-linear-elasticity"><a class="docs-
     g(i,j,k,l) = λ*δ(i,j)*δ(k,l) + μ*(δ(i,k)*δ(j,l) + δ(i,l)*δ(j,k))
     C = SymmetricTensor{4, dim}(g);
     return C
-end;</code></pre><h2 id="Threaded-data-structures"><a class="docs-heading-anchor" href="#Threaded-data-structures">Threaded data structures</a><a id="Threaded-data-structures-1"></a><a class="docs-heading-anchor-permalink" href="#Threaded-data-structures" title="Permalink"></a></h2><p>ScratchValues is a thread-local collection of data that each thread needs to own, since we need to be able to mutate the data in the threads independently</p><pre><code class="language-julia hljs">struct ScratchValues{T, CV &lt;: CellValues, FV &lt;: FaceValues, TT &lt;: AbstractTensor, dim, Ti}
+end;</code></pre><h2 id="Threaded-data-structures"><a class="docs-heading-anchor" href="#Threaded-data-structures">Threaded data structures</a><a id="Threaded-data-structures-1"></a><a class="docs-heading-anchor-permalink" href="#Threaded-data-structures" title="Permalink"></a></h2><p>ScratchValues is a thread-local collection of data that each thread needs to own, since we need to be able to mutate the data in the threads independently</p><pre><code class="language-julia hljs">struct ScratchValues{T, CV &lt;: CellValues, FV &lt;: FacetValues, TT &lt;: AbstractTensor, dim, Ti}
     Ke::Matrix{T}
     fe::Vector{T}
     cellvalues::CV
-    facevalues::FV
+    facetvalues::FV
     global_dofs::Vector{Int}
     ɛ::Vector{TT}
     coordinates::Vector{Vec{dim, T}}
     assembler::Ferrite.AssemblerSparsityPattern{T, Ti}
-end;</code></pre><p>Each thread need its own CellValues and FaceValues (although, for this example we don&#39;t use the FaceValues)</p><pre><code class="language-julia hljs">function create_values(interpolation_space::Interpolation{refshape}, qr_order::Int) where {dim, refshape&lt;:Ferrite.AbstractRefShape{dim}}
+end;</code></pre><p>Each thread need its own CellValues and FacetValues (although, for this example we don&#39;t use the FacetValues)</p><pre><code class="language-julia hljs">function create_values(interpolation_space::Interpolation{refshape}, qr_order::Int) where {dim, refshape&lt;:Ferrite.AbstractRefShape{dim}}
     # Interpolations and values
     quadrature_rule = QuadratureRule{refshape}(qr_order)
-    face_quadrature_rule = FaceQuadratureRule{refshape}(qr_order)
+    facet_quadrature_rule = FacetQuadratureRule{refshape}(qr_order)
     cellvalues = [CellValues(quadrature_rule, interpolation_space) for i in 1:Threads.nthreads()];
-    facevalues = [FaceValues(face_quadrature_rule, interpolation_space) for i in 1:Threads.nthreads()];
-    return cellvalues, facevalues
+    facetvalues = [FacetValues(facet_quadrature_rule, interpolation_space) for i in 1:Threads.nthreads()];
+    return cellvalues, facetvalues
 end;</code></pre><p>Create a <code>ScratchValues</code> for each thread with the thread local data</p><pre><code class="language-julia hljs">function create_scratchvalues(K, f, dh::DofHandler{dim}, ip) where {dim}
     nthreads = Threads.nthreads()
     assemblers = [start_assemble(K, f) for i in 1:nthreads]
-    cellvalues, facevalues = create_values(ip, 2)
+    cellvalues, facetvalues = create_values(ip, 2)
 
     n_basefuncs = getnbasefunctions(cellvalues[1])
     global_dofs = [zeros(Int, ndofs_per_cell(dh)) for i in 1:nthreads]
@@ -59,7 +59,7 @@ end;</code></pre><p>Create a <code>ScratchValues</code> for each thread with the
 
     coordinates = [[zero(Vec{dim}) for i in 1:length(dh.grid.cells[1].nodes)] for i in 1:nthreads]
 
-    return [ScratchValues(Kes[i], fes[i], cellvalues[i], facevalues[i], global_dofs[i],
+    return [ScratchValues(Kes[i], fes[i], cellvalues[i], facetvalues[i], global_dofs[i],
                          ɛs[i], coordinates[i], assemblers[i]) for i in 1:nthreads]
 end;</code></pre><h2 id="Threaded-assemble"><a class="docs-heading-anchor" href="#Threaded-assemble">Threaded assemble</a><a id="Threaded-assemble-1"></a><a class="docs-heading-anchor-permalink" href="#Threaded-assemble" title="Permalink"></a></h2><p>The assembly function loops over each color and does a threaded assembly for that color</p><pre><code class="language-julia hljs">function doassemble(K::SparseMatrixCSC, colors, grid::Grid, dh::DofHandler, C::SymmetricTensor{4, dim}, ip) where {dim}
 
@@ -79,8 +79,8 @@ end</code></pre><pre class="documenter-example-output"><code class="nohighlight 
                         grid::Grid, dh::DofHandler, C::SymmetricTensor{4, dim}, b::Vec{dim}) where {dim}
 
     # Unpack our stuff from the scratch
-    Ke, fe, cellvalues, facevalues, global_dofs, ɛ, coordinates, assembler =
-         scratch.Ke, scratch.fe, scratch.cellvalues, scratch.facevalues,
+    Ke, fe, cellvalues, facetvalues, global_dofs, ɛ, coordinates, assembler =
+         scratch.Ke, scratch.fe, scratch.cellvalues, scratch.facetvalues,
          scratch.global_dofs, scratch.ɛ, scratch.coordinates, scratch.assembler
 
     fill!(Ke, 0)
@@ -129,7 +129,7 @@ function run_assemble()
     return b
 end
 
-run_assemble()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.279305884</code></pre><p>Running the code with different number of threads give the following runtimes:</p><ul><li>1 thread  2.46 seconds</li><li>2 threads 1.19 seconds</li><li>3 threads 0.83 seconds</li><li>4 threads 0.75 seconds</li></ul><h2 id="threaded_assembly-plain-program"><a class="docs-heading-anchor" href="#threaded_assembly-plain-program">Plain program</a><a id="threaded_assembly-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#threaded_assembly-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../threaded_assembly.jl"><code>threaded_assembly.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, SparseArrays
+run_assemble()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.281469039</code></pre><p>Running the code with different number of threads give the following runtimes:</p><ul><li>1 thread  2.46 seconds</li><li>2 threads 1.19 seconds</li><li>3 threads 0.83 seconds</li><li>4 threads 0.75 seconds</li></ul><h2 id="threaded_assembly-plain-program"><a class="docs-heading-anchor" href="#threaded_assembly-plain-program">Plain program</a><a id="threaded_assembly-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#threaded_assembly-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../threaded_assembly.jl"><code>threaded_assembly.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, SparseArrays
 
 function create_example_2d_grid()
     grid = generate_grid(Quadrilateral, (10, 10), Vec{2}((0.0, 0.0)), Vec{2}((10.0, 10.0)))
@@ -166,11 +166,11 @@ function create_stiffness(::Val{dim}) where {dim}
     return C
 end;
 
-struct ScratchValues{T, CV &lt;: CellValues, FV &lt;: FaceValues, TT &lt;: AbstractTensor, dim, Ti}
+struct ScratchValues{T, CV &lt;: CellValues, FV &lt;: FacetValues, TT &lt;: AbstractTensor, dim, Ti}
     Ke::Matrix{T}
     fe::Vector{T}
     cellvalues::CV
-    facevalues::FV
+    facetvalues::FV
     global_dofs::Vector{Int}
     ɛ::Vector{TT}
     coordinates::Vector{Vec{dim, T}}
@@ -180,16 +180,16 @@ end;
 function create_values(interpolation_space::Interpolation{refshape}, qr_order::Int) where {dim, refshape&lt;:Ferrite.AbstractRefShape{dim}}
     # Interpolations and values
     quadrature_rule = QuadratureRule{refshape}(qr_order)
-    face_quadrature_rule = FaceQuadratureRule{refshape}(qr_order)
+    facet_quadrature_rule = FacetQuadratureRule{refshape}(qr_order)
     cellvalues = [CellValues(quadrature_rule, interpolation_space) for i in 1:Threads.nthreads()];
-    facevalues = [FaceValues(face_quadrature_rule, interpolation_space) for i in 1:Threads.nthreads()];
-    return cellvalues, facevalues
+    facetvalues = [FacetValues(facet_quadrature_rule, interpolation_space) for i in 1:Threads.nthreads()];
+    return cellvalues, facetvalues
 end;
 
 function create_scratchvalues(K, f, dh::DofHandler{dim}, ip) where {dim}
     nthreads = Threads.nthreads()
     assemblers = [start_assemble(K, f) for i in 1:nthreads]
-    cellvalues, facevalues = create_values(ip, 2)
+    cellvalues, facetvalues = create_values(ip, 2)
 
     n_basefuncs = getnbasefunctions(cellvalues[1])
     global_dofs = [zeros(Int, ndofs_per_cell(dh)) for i in 1:nthreads]
@@ -201,7 +201,7 @@ function create_scratchvalues(K, f, dh::DofHandler{dim}, ip) where {dim}
 
     coordinates = [[zero(Vec{dim}) for i in 1:length(dh.grid.cells[1].nodes)] for i in 1:nthreads]
 
-    return [ScratchValues(Kes[i], fes[i], cellvalues[i], facevalues[i], global_dofs[i],
+    return [ScratchValues(Kes[i], fes[i], cellvalues[i], facetvalues[i], global_dofs[i],
                          ɛs[i], coordinates[i], assemblers[i]) for i in 1:nthreads]
 end;
 
@@ -225,8 +225,8 @@ function assemble_cell!(scratch::ScratchValues, cell::Int, K::SparseMatrixCSC,
                         grid::Grid, dh::DofHandler, C::SymmetricTensor{4, dim}, b::Vec{dim}) where {dim}
 
     # Unpack our stuff from the scratch
-    Ke, fe, cellvalues, facevalues, global_dofs, ɛ, coordinates, assembler =
-         scratch.Ke, scratch.fe, scratch.cellvalues, scratch.facevalues,
+    Ke, fe, cellvalues, facetvalues, global_dofs, ɛ, coordinates, assembler =
+         scratch.Ke, scratch.fe, scratch.cellvalues, scratch.facetvalues,
          scratch.global_dofs, scratch.ɛ, scratch.coordinates, scratch.assembler
 
     fill!(Ke, 0)
@@ -275,4 +275,4 @@ function run_assemble()
     return b
 end
 
-run_assemble()</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../postprocessing/">« Post processing and visualization</a><a class="docs-footer-nextpage" href="../../gallery/">Code gallery »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Saturday 24 February 2024 18:58">Saturday 24 February 2024</span>. Using Julia version 1.10.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+run_assemble()</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../postprocessing/">« Post processing and visualization</a><a class="docs-footer-nextpage" href="../../gallery/">Code gallery »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Sunday 19 May 2024 17:41">Sunday 19 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

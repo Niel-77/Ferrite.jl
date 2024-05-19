@@ -14,9 +14,9 @@ grid = generate_grid(Quadrilateral, (150, 150))
 
 ip = Lagrange{RefQuadrilateral, 1}()
 qr = QuadratureRule{RefQuadrilateral}(2)
-qr_face = FaceQuadratureRule{RefQuadrilateral}(2)
+qr_facet = FacetQuadratureRule{RefQuadrilateral}(2)
 cellvalues = CellValues(qr, ip);
-facevalues = FaceValues(qr_face, ip);
+facetvalues = FacetValues(qr_facet, ip);
 
 dh = DofHandler(grid)
 add!(dh, :u, ip)
@@ -37,14 +37,14 @@ close!(dh)</code></pre><pre class="documenter-example-output"><code class="nohig
 end;
 
 dbcs = ConstraintHandler(dh)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">ConstraintHandler:
-  Not closed!</code></pre><p>The (strong) Dirichlet boundary condition can be handled automatically by the Ferrite library.</p><pre><code class="language-julia hljs">dbc = Dirichlet(:u, union(getfaceset(grid, &quot;top&quot;), getfaceset(grid, &quot;right&quot;)), (x,t) -&gt; u_ana(x))
+  Not closed!</code></pre><p>The (strong) Dirichlet boundary condition can be handled automatically by the Ferrite library.</p><pre><code class="language-julia hljs">dbc = Dirichlet(:u, union(getfacetset(grid, &quot;top&quot;), getfacetset(grid, &quot;right&quot;)), (x,t) -&gt; u_ana(x))
 add!(dbcs, dbc)
 close!(dbcs)
 update!(dbcs, 0.0)
 
 K = create_sparsity_pattern(dh);
 
-function doassemble(cellvalues::CellValues, facevalues::FaceValues,
+function doassemble(cellvalues::CellValues, facetvalues::FacetValues,
                          K::SparseMatrixCSC, dh::DofHandler)
     b = 1.0
     f = zeros(ndofs(dh))
@@ -77,18 +77,18 @@ function doassemble(cellvalues::CellValues, facevalues::FaceValues,
                     Ke[i, j] += (∇δu ⋅ ∇u + δu * u) * dΩ
                 end
             end
-        end</code></pre><p>Now we manually add the von Neumann boundary terms</p><p class="math-container">\[\int_{\Gamma_2} δu g_2 \, d\Gamma\]</p><pre><code class="language-julia hljs">        for face in 1:nfaces(cell)
-            if onboundary(cell, face) &amp;&amp;
-                   ((cellcount, face) ∈ getfaceset(grid, &quot;left&quot;) ||
-                    (cellcount, face) ∈ getfaceset(grid, &quot;bottom&quot;))
-                reinit!(facevalues, cell, face)
-                for q_point in 1:getnquadpoints(facevalues)
-                    coords_qp = spatial_coordinate(facevalues, q_point, coords)
-                    n = getnormal(facevalues, q_point)
+        end</code></pre><p>Now we manually add the von Neumann boundary terms</p><p class="math-container">\[\int_{\Gamma_2} δu g_2 \, d\Gamma\]</p><pre><code class="language-julia hljs">        for facet in 1:nfacets(cell)
+            if onboundary(cell, facet) &amp;&amp;
+                   ((cellcount, facet) ∈ getfacetset(grid, &quot;left&quot;) ||
+                    (cellcount, facet) ∈ getfacetset(grid, &quot;bottom&quot;))
+                reinit!(facetvalues, cell, facet)
+                for q_point in 1:getnquadpoints(facetvalues)
+                    coords_qp = spatial_coordinate(facetvalues, q_point, coords)
+                    n = getnormal(facetvalues, q_point)
                     g_2 = gradient(u_ana, coords_qp) ⋅ n
-                    dΓ = getdetJdV(facevalues, q_point)
+                    dΓ = getdetJdV(facetvalues, q_point)
                     for i in 1:n_basefuncs
-                        δu = shape_value(facevalues, q_point, i)
+                        δu = shape_value(facetvalues, q_point, i)
                         fe[i] += (δu * g_2) * dΓ
                     end
                 end
@@ -101,11 +101,11 @@ function doassemble(cellvalues::CellValues, facevalues::FaceValues,
     return K, f
 end;
 
-K, f = doassemble(cellvalues, facevalues, K, dh);
+K, f = doassemble(cellvalues, facetvalues, K, dh);
 apply!(K, f, dbcs)
 u = Symmetric(K) \ f;
 
 vtk = VTKFile(&quot;helmholtz&quot;, dh)
 write_solution(vtk, dh, u)
 close(vtk)
-println(&quot;Helmholtz successful&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Helmholtz successful</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Saturday 24 February 2024 18:58">Saturday 24 February 2024</span>. Using Julia version 1.10.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+println(&quot;Helmholtz successful&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Helmholtz successful</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Sunday 19 May 2024 17:41">Sunday 19 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

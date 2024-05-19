@@ -1,6 +1,20 @@
 using Ferrite, SparseArrays, LinearAlgebra
 
 using FerriteGmsh
+
+function FerriteGmsh.tofacesets(boundarydict::Dict{String,Vector}, elements::Vector{Triangle})
+    faces = Ferrite.facets.(elements)
+    facesets = Dict{String,Set{FaceIndex}}()
+    for (boundaryname, boundaryfaces) in boundarydict
+        facesettuple = Set{FaceIndex}()
+        for boundaryface in boundaryfaces
+            FerriteGmsh._add_to_facesettuple!(facesettuple, boundaryface, faces)
+        end
+        facesets[boundaryname] = facesettuple
+    end
+    return facesets
+end
+
 # grid = togrid("periodic-rve-coarse.msh")
 grid = togrid("periodic-rve.msh")
 
@@ -16,7 +30,7 @@ close!(dh);
 ch_dirichlet = ConstraintHandler(dh)
 dirichlet = Dirichlet(
     :u,
-    union(getfaceset.(Ref(grid), ["left", "right", "top", "bottom"])...),
+    union(getfacetset.(Ref(grid), ["left", "right", "top", "bottom"])...),
     (x, t) ->  [0, 0],
     [1, 2]
 )

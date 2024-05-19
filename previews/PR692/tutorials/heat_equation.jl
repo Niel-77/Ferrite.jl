@@ -15,10 +15,10 @@ K = create_sparsity_pattern(dh)
 ch = ConstraintHandler(dh);
 
 ∂Ω = union(
-    getfaceset(grid, "left"),
-    getfaceset(grid, "right"),
-    getfaceset(grid, "top"),
-    getfaceset(grid, "bottom"),
+    getfacetset(grid, "left"),
+    getfacetset(grid, "right"),
+    getfacetset(grid, "top"),
+    getfacetset(grid, "bottom"),
 );
 
 dbc = Dirichlet(:u, ∂Ω, (x, t) -> 0)

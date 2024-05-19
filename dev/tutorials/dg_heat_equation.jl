@@ -8,10 +8,10 @@ order = 1;
 ip = DiscontinuousLagrange{RefQuadrilateral, order}();
 qr = QuadratureRule{RefQuadrilateral}(2);
 
-face_qr = FaceQuadratureRule{RefQuadrilateral}(2);
+facet_qr = FacetQuadratureRule{RefQuadrilateral}(2);
 cellvalues = CellValues(qr, ip);
-facevalues = FaceValues(face_qr, ip);
-interfacevalues = InterfaceValues(face_qr, ip);
+facetvalues = FacetValues(facet_qr, ip);
+interfacevalues = InterfaceValues(facet_qr, ip);
 
 getdistance(p1::Vec{N, T},p2::Vec{N, T}) where {N, T} = norm(p1-p2);
 getdiameter(cell_coords::Vector{Vec{N, T}}) where {N, T} = maximum(getdistance.(cell_coords, reshape(cell_coords, (1,:))));
@@ -23,13 +23,13 @@ close!(dh);
 K = create_sparsity_pattern(dh, topology = topology, cross_coupling = trues(1,1));
 
 ch = ConstraintHandler(dh)
-add!(ch, Dirichlet(:u, getfaceset(grid, "right"), (x, t) -> 1.0))
-add!(ch, Dirichlet(:u, getfaceset(grid, "left"), (x, t) -> -1.0))
+add!(ch, Dirichlet(:u, getfacetset(grid, "right"), (x, t) -> 1.0))
+add!(ch, Dirichlet(:u, getfacetset(grid, "left"), (x, t) -> -1.0))
 close!(ch);
 
 ∂Ωₙ = union(
-    getfaceset(grid, "top"),
-    getfaceset(grid, "bottom"),
+    getfacetset(grid, "top"),
+    getfacetset(grid, "bottom"),
 );
 
 function assemble_element!(Ke::Matrix, fe::Vector, cellvalues::CellValues)
@@ -85,7 +85,7 @@ function assemble_interface!(Ki::Matrix, iv::InterfaceValues, μ::Float64)
     return Ki
 end
 
-function assemble_boundary!(fe::Vector, fv::FaceValues)
+function assemble_boundary!(fe::Vector, fv::FacetValues)
     # Reset to 0
     fill!(fe, 0)
     # Loop over quadrature points
@@ -104,7 +104,7 @@ function assemble_boundary!(fe::Vector, fv::FaceValues)
     return fe
 end
 
-function assemble_global(cellvalues::CellValues, facevalues::FaceValues, interfacevalues::InterfaceValues, K::SparseMatrixCSC, dh::DofHandler, order::Int, dim::Int)
+function assemble_global(cellvalues::CellValues, facetvalues::FacetValues, interfacevalues::InterfaceValues, K::SparseMatrixCSC, dh::DofHandler, order::Int, dim::Int)
     # Allocate the element stiffness matrix and element force vector
     n_basefuncs = getnbasefunctions(cellvalues)
     Ke = zeros(n_basefuncs, n_basefuncs)
@@ -138,17 +138,17 @@ function assemble_global(cellvalues::CellValues, facevalues::FaceValues, interfa
         assemble!(assembler, interfacedofs(ic), Ki)
     end
     # Loop over domain boundaries with Neumann boundary conditions
-    for fc in FaceIterator(dh, ∂Ωₙ)
+    for fc in FacetIterator(dh, ∂Ωₙ)
         # Reinitialize face_values_a for this boundary face
-        reinit!(facevalues, fc)
+        reinit!(facetvalues, fc)
         # Compute boundary face surface integrals contribution
-        assemble_boundary!(fe, facevalues)
+        assemble_boundary!(fe, facetvalues)
         # Assemble fe into f
         assemble!(f, celldofs(fc), fe)
     end
     return K, f
 end
-K, f = assemble_global(cellvalues, facevalues, interfacevalues, K, dh, order, dim);
+K, f = assemble_global(cellvalues, facetvalues, interfacevalues, K, dh, order, dim);
 
 apply!(K, f, ch)
 u = K \ f;

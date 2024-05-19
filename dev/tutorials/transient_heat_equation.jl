@@ -21,11 +21,11 @@ T = 200
 t_rise = 100
 ch = ConstraintHandler(dh);
 
-∂Ω₁ = union(getfaceset.((grid,), ["left", "right"])...)
+∂Ω₁ = union(getfacetset.((grid,), ["left", "right"])...)
 dbc = Dirichlet(:u, ∂Ω₁, (x, t) -> 0)
 add!(ch, dbc);
 
-∂Ω₂ = union(getfaceset.((grid,), ["top", "bottom"])...)
+∂Ω₂ = union(getfacetset.((grid,), ["top", "bottom"])...)
 dbc = Dirichlet(:u, ∂Ω₂, (x, t) -> max_temp * clamp(t / t_rise, 0, 1))
 add!(ch, dbc)
 close!(ch)

@@ -35,20 +35,22 @@
 cell_scale_factor = 2.0
 x_cells = round(Int, cell_scale_factor*220)
 y_cells = round(Int, cell_scale_factor*41)
-grid = generate_grid(Quadrilateral, (x_cells, y_cells), Vec{2}((0.0, 0.0)), Vec{2}((2.2, 0.41)));</code></pre><p>Next we carve a hole <span>$B_{0.05}(0.2,0.2)$</span> in the mesh by deleting the cells and update the boundary face sets. This code will be replaced once a proper mesh interface is available.</p><pre><code class="language-julia hljs">cell_indices = filter(ci-&gt;norm(mean(map(i-&gt;grid.nodes[i].x-[0.2,0.2], Ferrite.vertices(grid.cells[ci]))))&gt;0.05, 1:length(grid.cells))
-hole_cell_indices = filter(ci-&gt;norm(mean(map(i-&gt;grid.nodes[i].x-[0.2,0.2], Ferrite.vertices(grid.cells[ci]))))&lt;=0.05, 1:length(grid.cells));
-hole_face_ring = Set{FaceIndex}()
+grid = generate_grid(Quadrilateral, (x_cells, y_cells), Vec{2}((0.0, 0.0)), Vec{2}((2.2, 0.41)));</code></pre><p>Next we carve a hole <span>$B_{0.05}(0.2,0.2)$</span> in the mesh by deleting the cells and update the boundary face sets. This code will be replaced once a proper mesh interface is available.</p><pre><code class="language-julia hljs">hole_center = Vec((0.2, 0.2))
+hole_radius = 0.05
+cell_indices = filter(ci -&gt; norm(mean(getcoordinates(grid, ci) .- (hole_center,))) &gt; hole_radius, 1:length(grid.cells))
+hole_cell_indices = filter(ci -&gt; norm(mean(getcoordinates(grid, ci) .- (hole_center,))) &lt;= hole_radius, 1:length(grid.cells));
+hole_facet_ring = Set{FacetIndex}()
 for hci ∈ hole_cell_indices
-    push!(hole_face_ring, FaceIndex((hci+1, 4)))
-    push!(hole_face_ring, FaceIndex((hci-1, 2)))
-    push!(hole_face_ring, FaceIndex((hci-x_cells, 3)))
-    push!(hole_face_ring, FaceIndex((hci+x_cells, 1)))
+    push!(hole_facet_ring, FacetIndex((hci+1, 4)))
+    push!(hole_facet_ring, FacetIndex((hci-1, 2)))
+    push!(hole_facet_ring, FacetIndex((hci-x_cells, 3)))
+    push!(hole_facet_ring, FacetIndex((hci+x_cells, 1)))
 end
-grid.facesets[&quot;hole&quot;] = Set(filter(x-&gt;x.idx[1] ∉ hole_cell_indices, collect(hole_face_ring)));
-cell_indices_map = map(ci-&gt;norm(mean(map(i-&gt;grid.nodes[i].x-[0.2,0.2], Ferrite.vertices(grid.cells[ci]))))&gt;0.05 ? indexin([ci], cell_indices)[1] : 0, 1:length(grid.cells))
+addfacetset!(grid, &quot;hole&quot;, Set(filter(x-&gt;x.idx[1] ∉ hole_cell_indices, collect(hole_facet_ring))))
+cell_indices_map = map(ci -&gt; norm(mean(getcoordinates(grid, ci) .- (hole_center,))) &gt; 0.05 ? indexin([ci], cell_indices)[1] : 0, 1:length(grid.cells))
 grid.cells = grid.cells[cell_indices]
-for facesetname in keys(grid.facesets)
-    grid.facesets[facesetname] = Set(map(fi -&gt; FaceIndex( cell_indices_map[fi.idx[1]] ,fi.idx[2]), collect(grid.facesets[facesetname])))
+for facetsetname in keys(grid.facetsets)
+    grid.facetsets[facetsetname] = Set(map(fi -&gt; FacetIndex( cell_indices_map[fi.idx[1]] ,fi.idx[2]), collect(grid.facetsets[facetsetname])))
 end;</code></pre><h3 id="Function-Space"><a class="docs-heading-anchor" href="#Function-Space">Function Space</a><a id="Function-Space-1"></a><a class="docs-heading-anchor-permalink" href="#Function-Space" title="Permalink"></a></h3><p>To ensure stability we utilize the Taylor-Hood element pair Q2-Q1. We have to utilize the same quadrature rule for the pressure as for the velocity, because in the weak form the linear pressure term is tested against a quadratic function.</p><pre><code class="language-julia hljs">ip_v = Lagrange{RefQuadrilateral, 2}()^dim
 qr = QuadratureRule{RefQuadrilateral}(4)
 cellvalues_v = CellValues(qr, ip_v);
@@ -61,15 +63,15 @@ add!(dh, :v, ip_v)
 add!(dh, :p, ip_p)
 close!(dh);</code></pre><h3 id="Boundary-Conditions"><a class="docs-heading-anchor" href="#Boundary-Conditions">Boundary Conditions</a><a id="Boundary-Conditions-1"></a><a class="docs-heading-anchor-permalink" href="#Boundary-Conditions" title="Permalink"></a></h3><p>As in the DFG benchmark we apply no-slip conditions to the top, bottom and cylinder boundary. The no-slip condition states that the velocity of the fluid on this portion of the boundary is fixed to be zero.</p><pre><code class="language-julia hljs">ch = ConstraintHandler(dh);
 
-nosplip_face_names = [&quot;top&quot;, &quot;bottom&quot;, &quot;hole&quot;];
-∂Ω_noslip = union(getfaceset.((grid, ), nosplip_face_names)...);
+nosplip_facet_names = [&quot;top&quot;, &quot;bottom&quot;, &quot;hole&quot;];
+∂Ω_noslip = union(getfacetset.((grid, ), nosplip_facet_names)...);
 noslip_bc = Dirichlet(:v, ∂Ω_noslip, (x, t) -&gt; [0,0], [1,2])
-add!(ch, noslip_bc);</code></pre><p>The left boundary has a parabolic inflow with peak velocity of 1.0. This ensures that for the given geometry the Reynolds number is 100, which is already enough to obtain some simple vortex streets. By increasing the velocity further we can obtain stronger vortices - which may need additional refinement of the grid.</p><pre><code class="language-julia hljs">∂Ω_inflow = getfaceset(grid, &quot;left&quot;);
+add!(ch, noslip_bc);</code></pre><p>The left boundary has a parabolic inflow with peak velocity of 1.0. This ensures that for the given geometry the Reynolds number is 100, which is already enough to obtain some simple vortex streets. By increasing the velocity further we can obtain stronger vortices - which may need additional refinement of the grid.</p><pre><code class="language-julia hljs">∂Ω_inflow = getfacetset(grid, &quot;left&quot;);
 
 vᵢₙ(t) = clamp(t, 0.0, 1.0)*1.0 #inflow velocity
 parabolic_inflow_profile((x,y),t) = [4*vᵢₙ(t)*y*(0.41-y)/0.41^2,0]
 inflow_bc = Dirichlet(:v, ∂Ω_inflow, parabolic_inflow_profile, [1,2])
-add!(ch, inflow_bc);</code></pre><p>The outflow boundary condition has been applied on the right side of the cylinder when the weak form has been derived by setting the boundary integral to zero. It is also called the do-nothing condition. Other outflow conditions are also possible.</p><pre><code class="language-julia hljs">∂Ω_free = getfaceset(grid, &quot;right&quot;);
+add!(ch, inflow_bc);</code></pre><p>The outflow boundary condition has been applied on the right side of the cylinder when the weak form has been derived by setting the boundary integral to zero. It is also called the do-nothing condition. Other outflow conditions are also possible.</p><pre><code class="language-julia hljs">∂Ω_free = getfacetset(grid, &quot;right&quot;);
 
 close!(ch)
 update!(ch, 0.0);</code></pre><h3 id="Linear-System-Assembly"><a class="docs-heading-anchor" href="#Linear-System-Assembly">Linear System Assembly</a><a id="Linear-System-Assembly-1"></a><a class="docs-heading-anchor-permalink" href="#Linear-System-Assembly" title="Permalink"></a></h3><p>Next we describe how the block mass matrix and the Stokes matrix are assembled.</p><p>For the block mass matrix <span>$M$</span> we remember that only the first equation had a time derivative and that the block mass matrix corresponds to the term arising from discretizing the time derivatives. Hence, only the upper left block has non-zero components.</p><pre><code class="language-julia hljs">function assemble_mass_matrix(cellvalues_v::CellValues, cellvalues_p::CellValues, M::SparseMatrixCSC, dh::DofHandler)
@@ -212,20 +214,22 @@ x_cells = round(Int, cell_scale_factor*220)
 y_cells = round(Int, cell_scale_factor*41)
 grid = generate_grid(Quadrilateral, (x_cells, y_cells), Vec{2}((0.0, 0.0)), Vec{2}((2.2, 0.41)));
 
-cell_indices = filter(ci-&gt;norm(mean(map(i-&gt;grid.nodes[i].x-[0.2,0.2], Ferrite.vertices(grid.cells[ci]))))&gt;0.05, 1:length(grid.cells))
-hole_cell_indices = filter(ci-&gt;norm(mean(map(i-&gt;grid.nodes[i].x-[0.2,0.2], Ferrite.vertices(grid.cells[ci]))))&lt;=0.05, 1:length(grid.cells));
-hole_face_ring = Set{FaceIndex}()
+hole_center = Vec((0.2, 0.2))
+hole_radius = 0.05
+cell_indices = filter(ci -&gt; norm(mean(getcoordinates(grid, ci) .- (hole_center,))) &gt; hole_radius, 1:length(grid.cells))
+hole_cell_indices = filter(ci -&gt; norm(mean(getcoordinates(grid, ci) .- (hole_center,))) &lt;= hole_radius, 1:length(grid.cells));
+hole_facet_ring = Set{FacetIndex}()
 for hci ∈ hole_cell_indices
-    push!(hole_face_ring, FaceIndex((hci+1, 4)))
-    push!(hole_face_ring, FaceIndex((hci-1, 2)))
-    push!(hole_face_ring, FaceIndex((hci-x_cells, 3)))
-    push!(hole_face_ring, FaceIndex((hci+x_cells, 1)))
+    push!(hole_facet_ring, FacetIndex((hci+1, 4)))
+    push!(hole_facet_ring, FacetIndex((hci-1, 2)))
+    push!(hole_facet_ring, FacetIndex((hci-x_cells, 3)))
+    push!(hole_facet_ring, FacetIndex((hci+x_cells, 1)))
 end
-grid.facesets[&quot;hole&quot;] = Set(filter(x-&gt;x.idx[1] ∉ hole_cell_indices, collect(hole_face_ring)));
-cell_indices_map = map(ci-&gt;norm(mean(map(i-&gt;grid.nodes[i].x-[0.2,0.2], Ferrite.vertices(grid.cells[ci]))))&gt;0.05 ? indexin([ci], cell_indices)[1] : 0, 1:length(grid.cells))
+addfacetset!(grid, &quot;hole&quot;, Set(filter(x-&gt;x.idx[1] ∉ hole_cell_indices, collect(hole_facet_ring))))
+cell_indices_map = map(ci -&gt; norm(mean(getcoordinates(grid, ci) .- (hole_center,))) &gt; 0.05 ? indexin([ci], cell_indices)[1] : 0, 1:length(grid.cells))
 grid.cells = grid.cells[cell_indices]
-for facesetname in keys(grid.facesets)
-    grid.facesets[facesetname] = Set(map(fi -&gt; FaceIndex( cell_indices_map[fi.idx[1]] ,fi.idx[2]), collect(grid.facesets[facesetname])))
+for facetsetname in keys(grid.facetsets)
+    grid.facetsets[facetsetname] = Set(map(fi -&gt; FacetIndex( cell_indices_map[fi.idx[1]] ,fi.idx[2]), collect(grid.facetsets[facetsetname])))
 end;
 
 
@@ -243,19 +247,19 @@ close!(dh);
 
 ch = ConstraintHandler(dh);
 
-nosplip_face_names = [&quot;top&quot;, &quot;bottom&quot;, &quot;hole&quot;];
-∂Ω_noslip = union(getfaceset.((grid, ), nosplip_face_names)...);
+nosplip_facet_names = [&quot;top&quot;, &quot;bottom&quot;, &quot;hole&quot;];
+∂Ω_noslip = union(getfacetset.((grid, ), nosplip_facet_names)...);
 noslip_bc = Dirichlet(:v, ∂Ω_noslip, (x, t) -&gt; [0,0], [1,2])
 add!(ch, noslip_bc);
 
-∂Ω_inflow = getfaceset(grid, &quot;left&quot;);
+∂Ω_inflow = getfacetset(grid, &quot;left&quot;);
 
 vᵢₙ(t) = clamp(t, 0.0, 1.0)*1.0 #inflow velocity
 parabolic_inflow_profile((x,y),t) = [4*vᵢₙ(t)*y*(0.41-y)/0.41^2,0]
 inflow_bc = Dirichlet(:v, ∂Ω_inflow, parabolic_inflow_profile, [1,2])
 add!(ch, inflow_bc);
 
-∂Ω_free = getfaceset(grid, &quot;right&quot;);
+∂Ω_free = getfacetset(grid, &quot;right&quot;);
 
 close!(ch)
 update!(ch, 0.0);
@@ -414,4 +418,4 @@ for (u_uc,t) in integrator
         pvd[t] = vtk
     end
 end
-vtk_save(pvd);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../porous_media/">« Porous media</a><a class="docs-footer-nextpage" href="../linear_shell/">Linear shell »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Thursday 16 May 2024 10:25">Thursday 16 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+vtk_save(pvd);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../porous_media/">« Porous media</a><a class="docs-footer-nextpage" href="../linear_shell/">Linear shell »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Sunday 19 May 2024 07:24">Sunday 19 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

@@ -17,16 +17,16 @@ add!(dh, :u, ip^3)
 add!(dh, :θ, ip^2)
 close!(dh)
 
-addedgeset!(grid, "left",  (x) -> x[1] ≈ 0.0)
-addedgeset!(grid, "right", (x) -> x[1] ≈ size[1])
+addfacetset!(grid, "left",  (x) -> x[1] ≈ 0.0)
+addfacetset!(grid, "right", (x) -> x[1] ≈ size[1])
 addvertexset!(grid, "corner", (x) -> x[1] ≈ 0.0 && x[2] ≈ 0.0 && x[3] ≈ 0.0)
 
 ch = ConstraintHandler(dh)
-add!(ch,  Dirichlet(:u, getedgeset(grid, "left"), (x, t) -> (0.0, 0.0), [1,3])  )
-add!(ch,  Dirichlet(:θ, getedgeset(grid, "left"), (x, t) -> (0.0, 0.0), [1,2])  )
+add!(ch,  Dirichlet(:u, getfacetset(grid, "left"), (x, t) -> (0.0, 0.0), [1,3])  )
+add!(ch,  Dirichlet(:θ, getfacetset(grid, "left"), (x, t) -> (0.0, 0.0), [1,2])  )
 
-add!(ch,  Dirichlet(:u, getedgeset(grid, "right"), (x, t) -> (0.0, 0.0), [1,3])  )
-add!(ch,  Dirichlet(:θ, getedgeset(grid, "right"), (x, t) -> (0.0, pi/10), [1,2])  )
+add!(ch,  Dirichlet(:u, getfacetset(grid, "right"), (x, t) -> (0.0, 0.0), [1,3])  )
+add!(ch,  Dirichlet(:θ, getfacetset(grid, "right"), (x, t) -> (0.0, pi/10), [1,2])  )
 
 add!(ch,  Dirichlet(:θ, getvertexset(grid, "corner"), (x, t) -> (0.0), [2])  )
 
@@ -74,8 +74,8 @@ end
 apply!(K, f, ch)
 a = K\f
 
-vtk_grid("linear_shell", dh) do vtk
-    vtk_point_data(vtk, dh, a)
+VTKFile("linear_shell", dh) do vtk
+    write_solution(vtk, dh, a)
 end
 
 end; #end main functions
@@ -173,6 +173,8 @@ function strain(dofvec::Vector{T}, N, dNdx, ζ, dζdx, q, ef1, ef2, h) where T
     return ε
 end;
 
+shape_reference_gradient(cv::CellValues, q_point, i) = cv.fun_values.dNdξ[i, q_point]
+
 function integrate_shell!(ke, cv, qr_ooplane, X, data)
     nnodes = getnbasefunctions(cv)
     ndofs = nnodes*5
@@ -190,9 +192,9 @@ function integrate_shell!(ke, cv, qr_ooplane, X, data)
     ef1, ef2, ef3 = fiber_coordsys(p)
 
     for iqp in 1:getnquadpoints(cv)
-        N = cv.N[:,iqp]
-        dNdξ = cv.dNdξ[:,iqp]
-        dNdx = cv.dNdx[:,iqp]
+        N = [shape_value(cv, iqp, i) for i in 1:nnodes]
+        dNdξ = [shape_reference_gradient(cv, iqp, i) for i in 1:nnodes]
+        dNdx = [shape_gradient(cv, iqp, i) for i in 1:nnodes]
 
         for oqp in 1:length(qr_ooplane.weights)
             ζ = qr_ooplane.points[oqp][1]

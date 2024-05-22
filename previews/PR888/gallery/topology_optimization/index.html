@@ -8,19 +8,19 @@
 
     # node-/facesets for boundary conditions
     addnodeset!(grid, &quot;clamped&quot;, x -&gt; x[1] ≈ 0.0)
-    addfaceset!(grid, &quot;traction&quot;, x -&gt; x[1] ≈ 2.0 &amp;&amp; norm(x[2]-0.5) &lt;= 0.05);
+    addfacetset!(grid, &quot;traction&quot;, x -&gt; x[1] ≈ 2.0 &amp;&amp; norm(x[2]-0.5) &lt;= 0.05);
     return grid
 end</code></pre><p>Next, we create the FE values, the DofHandler and the Dirichlet boundary condition.</p><pre><code class="language-julia hljs">function create_values()
     # quadrature rules
     qr      = QuadratureRule{RefQuadrilateral}(2)
-    face_qr = FaceQuadratureRule{RefQuadrilateral}(2)
+    facet_qr = FacetQuadratureRule{RefQuadrilateral}(2)
 
-    # cell and facevalues for u
+    # cell and facetvalues for u
     ip = Lagrange{RefQuadrilateral,1}()^2
     cellvalues = CellValues(qr, ip)
-    facevalues = FaceValues(face_qr, ip)
+    facetvalues = FacetValues(facet_qr, ip)
 
-    return cellvalues, facevalues
+    return cellvalues, facetvalues
 end
 
 function create_dofhandler(grid)
@@ -85,18 +85,18 @@ function compute_densities(states, dh)
     return χn
 end</code></pre><p>Now we calculate the Laplacian. For this purpose, we will later create the grid topology of the grid by using the function <code>ExclusiveTopology</code>. Then we iterate through each face of each element, obtaining the neighboring element by using the <code>getneighborhood</code> function. For boundary faces, the function call will return an empty object. In that case we use the dictionary to instead find the opposite face, as discussed in the introduction. Then, the approximation of the Laplacian reduces to the sum below.</p><pre><code class="language-julia hljs">function approximate_laplacian(dh, topology, χn, Δh)
     ∇²χ = zeros(getncells(dh.grid))
-    _nfaces = nfaces(dh.grid.cells[1])
+    _nfacets = nfacets(dh.grid.cells[1])
     opp = Dict(1=&gt;3, 2=&gt;4, 3=&gt;1, 4=&gt;2)
-    nbg = zeros(Int,_nfaces)
+    nbg = zeros(Int,_nfacets)
 
     for element in CellIterator(dh)
         i = cellid(element)
-        for j in 1:_nfaces
-            nbg_cellid = getcells(getneighborhood(topology, dh.grid, FaceIndex(i,j)))
+        for j in 1:_nfacets
+            nbg_cellid = getcells(getneighborhood(topology, dh.grid, FacetIndex(i,j)))
             if(!isempty(nbg_cellid))
                 nbg[j] = first(nbg_cellid) # assuming only one face neighbor per cell
             else # boundary face
-                nbg[j] = first(getcells(getneighborhood(topology, dh.grid, FaceIndex(i,opp[j]))))
+                nbg[j] = first(getcells(getneighborhood(topology, dh.grid, FacetIndex(i,opp[j]))))
             end
         end
 
@@ -165,7 +165,7 @@ end</code></pre><p>Finally, we put everything together to update the density. Th
     end
 
     return χn1
-end</code></pre><p>Now, we move on to the Finite Element part of the program. We use the following function to assemble our linear system.</p><pre><code class="language-julia hljs">function doassemble!(cellvalues::CellValues, facevalues::FaceValues, K::SparseMatrixCSC, grid::Grid, dh::DofHandler, mp::MaterialParameters, u, states)
+end</code></pre><p>Now, we move on to the Finite Element part of the program. We use the following function to assemble our linear system.</p><pre><code class="language-julia hljs">function doassemble!(cellvalues::CellValues, facetvalues::FacetValues, K::SparseMatrixCSC, grid::Grid, dh::DofHandler, mp::MaterialParameters, u, states)
     r = zeros(ndofs(dh))
     assembler = start_assemble(K, r)
     nu = getnbasefunctions(cellvalues)
@@ -180,12 +180,12 @@ end</code></pre><p>Now, we move on to the Finite Element part of the program. We
         eldofs = celldofs(element)
         ue = u[eldofs]
 
-        elmt!(Ke, re, element, cellvalues, facevalues, grid, mp, ue, state)
+        elmt!(Ke, re, element, cellvalues, facetvalues, grid, mp, ue, state)
         assemble!(assembler, celldofs(element), re, Ke)
     end
 
     return K, r
-end</code></pre><p>The element routine is used to calculate the elementwise stiffness matrix and the residual. In contrast to a purely elastomechanic problem, for topology optimization we additionally use our material state to receive the density value of the element and to store the strain at each quadrature point.</p><pre><code class="language-julia hljs">function elmt!(Ke, re, element, cellvalues, facevalues, grid, mp, ue, state)
+end</code></pre><p>The element routine is used to calculate the elementwise stiffness matrix and the residual. In contrast to a purely elastomechanic problem, for topology optimization we additionally use our material state to receive the density value of the element and to store the strain at each quadrature point.</p><pre><code class="language-julia hljs">function elmt!(Ke, re, element, cellvalues, facetvalues, grid, mp, ue, state)
     n_basefuncs = getnbasefunctions(cellvalues)
     reinit!(cellvalues, element)
     χ = state.χ
@@ -208,14 +208,14 @@ end</code></pre><p>The element routine is used to calculate the elementwise stif
 
     symmetrize_lower!(Ke)
 
-    @inbounds for face in 1:nfaces(element)
-        if onboundary(element, face) &amp;&amp; (cellid(element), face) ∈ getfaceset(grid, &quot;traction&quot;)
-            reinit!(facevalues, element, face)
+    @inbounds for facet in 1:nfacets(getcells(grid, cellid(element)))
+        if (cellid(element), facet) ∈ getfacetset(grid, &quot;traction&quot;)
+            reinit!(facetvalues, element, facet)
             t = Vec((0.0, -1.0)) # force pointing downwards
-            for q_point in 1:getnquadpoints(facevalues)
-                dΓ = getdetJdV(facevalues, q_point)
+            for q_point in 1:getnquadpoints(facetvalues)
+                dΓ = getdetJdV(facetvalues, q_point)
                 for i in 1:n_basefuncs
-                    δu = shape_value(facevalues, q_point, i)
+                    δu = shape_value(facetvalues, q_point, i)
                     re[i] += (δu ⋅ t) * dΓ
                 end
             end
@@ -241,7 +241,7 @@ end</code></pre><p>We put everything together in the main function. Here the use
     dbc = create_bc(dh)
 
     # cellvalues
-    cellvalues, facevalues = create_values()
+    cellvalues, facetvalues = create_values()
 
     # Pre-allocate solution vectors, etc.
     n_dofs = ndofs(dh) # total number of dofs
@@ -285,7 +285,7 @@ end</code></pre><p>We put everything together in the main function. Here the use
 
             # current guess
             u .= un .+ Δu
-            K, r = doassemble!(cellvalues, facevalues, K, grid, dh, mp, u, states);
+            K, r = doassemble!(cellvalues, facetvalues, K, grid, dh, mp, u, states);
             norm_r = norm(r[Ferrite.free_dofs(dbc)])
 
             if (norm_r) &lt; NEWTON_TOL
@@ -332,16 +332,16 @@ end</code></pre><p>We put everything together in the main function. Here the use
             i = @sprintf(&quot;%3.3i&quot;, it)
             filename_it = string(filename, &quot;_&quot;, i)
 
-            vtk_grid(filename_it, grid) do vtk
-                vtk_cell_data(vtk, χ, &quot;density&quot;)
+            VTKFile(filename_it, grid) do vtk
+                write_cell_data(vtk, χ, &quot;density&quot;)
             end
         end
     end
 
     # export converged results
     if(!output)
-        vtk_grid(filename, grid) do vtk
-            vtk_cell_data(vtk, χ, &quot;density&quot;)
+        VTKFile(filename, grid) do vtk
+            write_cell_data(vtk, χ, &quot;density&quot;)
         end
     end
     @printf &quot;Rel. stiffness: %.4f \n&quot; compliance^(-1)/compliance_0^(-1)
@@ -374,21 +374,21 @@ function create_grid(n)
 
     # node-/facesets for boundary conditions
     addnodeset!(grid, &quot;clamped&quot;, x -&gt; x[1] ≈ 0.0)
-    addfaceset!(grid, &quot;traction&quot;, x -&gt; x[1] ≈ 2.0 &amp;&amp; norm(x[2]-0.5) &lt;= 0.05);
+    addfacetset!(grid, &quot;traction&quot;, x -&gt; x[1] ≈ 2.0 &amp;&amp; norm(x[2]-0.5) &lt;= 0.05);
     return grid
 end
 
 function create_values()
     # quadrature rules
     qr      = QuadratureRule{RefQuadrilateral}(2)
-    face_qr = FaceQuadratureRule{RefQuadrilateral}(2)
+    facet_qr = FacetQuadratureRule{RefQuadrilateral}(2)
 
-    # cell and facevalues for u
+    # cell and facetvalues for u
     ip = Lagrange{RefQuadrilateral,1}()^2
     cellvalues = CellValues(qr, ip)
-    facevalues = FaceValues(face_qr, ip)
+    facetvalues = FacetValues(facet_qr, ip)
 
-    return cellvalues, facevalues
+    return cellvalues, facetvalues
 end
 
 function create_dofhandler(grid)
@@ -461,18 +461,18 @@ end
 
 function approximate_laplacian(dh, topology, χn, Δh)
     ∇²χ = zeros(getncells(dh.grid))
-    _nfaces = nfaces(dh.grid.cells[1])
+    _nfacets = nfacets(dh.grid.cells[1])
     opp = Dict(1=&gt;3, 2=&gt;4, 3=&gt;1, 4=&gt;2)
-    nbg = zeros(Int,_nfaces)
+    nbg = zeros(Int,_nfacets)
 
     for element in CellIterator(dh)
         i = cellid(element)
-        for j in 1:_nfaces
-            nbg_cellid = getcells(getneighborhood(topology, dh.grid, FaceIndex(i,j)))
+        for j in 1:_nfacets
+            nbg_cellid = getcells(getneighborhood(topology, dh.grid, FacetIndex(i,j)))
             if(!isempty(nbg_cellid))
                 nbg[j] = first(nbg_cellid) # assuming only one face neighbor per cell
             else # boundary face
-                nbg[j] = first(getcells(getneighborhood(topology, dh.grid, FaceIndex(i,opp[j]))))
+                nbg[j] = first(getcells(getneighborhood(topology, dh.grid, FacetIndex(i,opp[j]))))
             end
         end
 
@@ -549,7 +549,7 @@ function update_density(dh, states, mp, ρ, topology, Δh)
     return χn1
 end
 
-function doassemble!(cellvalues::CellValues, facevalues::FaceValues, K::SparseMatrixCSC, grid::Grid, dh::DofHandler, mp::MaterialParameters, u, states)
+function doassemble!(cellvalues::CellValues, facetvalues::FacetValues, K::SparseMatrixCSC, grid::Grid, dh::DofHandler, mp::MaterialParameters, u, states)
     r = zeros(ndofs(dh))
     assembler = start_assemble(K, r)
     nu = getnbasefunctions(cellvalues)
@@ -564,14 +564,14 @@ function doassemble!(cellvalues::CellValues, facevalues::FaceValues, K::SparseMa
         eldofs = celldofs(element)
         ue = u[eldofs]
 
-        elmt!(Ke, re, element, cellvalues, facevalues, grid, mp, ue, state)
+        elmt!(Ke, re, element, cellvalues, facetvalues, grid, mp, ue, state)
         assemble!(assembler, celldofs(element), re, Ke)
     end
 
     return K, r
 end
 
-function elmt!(Ke, re, element, cellvalues, facevalues, grid, mp, ue, state)
+function elmt!(Ke, re, element, cellvalues, facetvalues, grid, mp, ue, state)
     n_basefuncs = getnbasefunctions(cellvalues)
     reinit!(cellvalues, element)
     χ = state.χ
@@ -594,14 +594,14 @@ function elmt!(Ke, re, element, cellvalues, facevalues, grid, mp, ue, state)
 
     symmetrize_lower!(Ke)
 
-    @inbounds for face in 1:nfaces(element)
-        if onboundary(element, face) &amp;&amp; (cellid(element), face) ∈ getfaceset(grid, &quot;traction&quot;)
-            reinit!(facevalues, element, face)
+    @inbounds for facet in 1:nfacets(getcells(grid, cellid(element)))
+        if (cellid(element), facet) ∈ getfacetset(grid, &quot;traction&quot;)
+            reinit!(facetvalues, element, facet)
             t = Vec((0.0, -1.0)) # force pointing downwards
-            for q_point in 1:getnquadpoints(facevalues)
-                dΓ = getdetJdV(facevalues, q_point)
+            for q_point in 1:getnquadpoints(facetvalues)
+                dΓ = getdetJdV(facetvalues, q_point)
                 for i in 1:n_basefuncs
-                    δu = shape_value(facevalues, q_point, i)
+                    δu = shape_value(facetvalues, q_point, i)
                     re[i] += (δu ⋅ t) * dΓ
                 end
             end
@@ -629,7 +629,7 @@ function topopt(ra,ρ,n,filename; output=:false)
     dbc = create_bc(dh)
 
     # cellvalues
-    cellvalues, facevalues = create_values()
+    cellvalues, facetvalues = create_values()
 
     # Pre-allocate solution vectors, etc.
     n_dofs = ndofs(dh) # total number of dofs
@@ -673,7 +673,7 @@ function topopt(ra,ρ,n,filename; output=:false)
 
             # current guess
             u .= un .+ Δu
-            K, r = doassemble!(cellvalues, facevalues, K, grid, dh, mp, u, states);
+            K, r = doassemble!(cellvalues, facetvalues, K, grid, dh, mp, u, states);
             norm_r = norm(r[Ferrite.free_dofs(dbc)])
 
             if (norm_r) &lt; NEWTON_TOL
@@ -720,16 +720,16 @@ function topopt(ra,ρ,n,filename; output=:false)
             i = @sprintf(&quot;%3.3i&quot;, it)
             filename_it = string(filename, &quot;_&quot;, i)
 
-            vtk_grid(filename_it, grid) do vtk
-                vtk_cell_data(vtk, χ, &quot;density&quot;)
+            VTKFile(filename_it, grid) do vtk
+                write_cell_data(vtk, χ, &quot;density&quot;)
             end
         end
     end
 
     # export converged results
     if(!output)
-        vtk_grid(filename, grid) do vtk
-            vtk_cell_data(vtk, χ, &quot;density&quot;)
+        VTKFile(filename, grid) do vtk
+            write_cell_data(vtk, χ, &quot;density&quot;)
         end
     end
     @printf &quot;Rel. stiffness: %.4f \n&quot; compliance^(-1)/compliance_0^(-1)
@@ -739,4 +739,4 @@ end
 
 topopt(0.02, 0.5, 60, &quot;small_radius&quot;; output=:false);
 topopt(0.03, 0.5, 60, &quot;large_radius&quot;; output=:false);
-##topopt(0.02, 0.5, 60, &quot;topopt_animation&quot;; output=:true); # can be used to create animations</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Wednesday 15 May 2024 11:31">Wednesday 15 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+##topopt(0.02, 0.5, 60, &quot;topopt_animation&quot;; output=:true); # can be used to create animations</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Wednesday 22 May 2024 11:25">Wednesday 22 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

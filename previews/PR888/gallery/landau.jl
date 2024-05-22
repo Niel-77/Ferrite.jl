@@ -69,8 +69,8 @@ function LandauModel(α, G, gridsize, left::Vec{DIM, T}, right::Vec{DIM, T}, elp
     startingconditions!(dofvector, dofhandler)
     boundaryconds = ConstraintHandler(dofhandler)
     #boundary conditions can be added but aren't necessary for optimization
-    #add!(boundaryconds, Dirichlet(:P, getfaceset(grid, "left"), (x, t) -> [0.0,0.0,0.53], [1,2,3]))
-    #add!(boundaryconds, Dirichlet(:P, getfaceset(grid, "right"), (x, t) -> [0.0,0.0,-0.53], [1,2,3]))
+    #add!(boundaryconds, Dirichlet(:P, getfacetset(grid, "left"), (x, t) -> [0.0,0.0,0.53], [1,2,3]))
+    #add!(boundaryconds, Dirichlet(:P, getfacetset(grid, "right"), (x, t) -> [0.0,0.0,-0.53], [1,2,3]))
     close!(boundaryconds)
     update!(boundaryconds, 0.0)
 
@@ -83,10 +83,10 @@ function LandauModel(α, G, gridsize, left::Vec{DIM, T}, right::Vec{DIM, T}, elp
     return LandauModel(dofvector, dofhandler, boundaryconds, threadindices, caches)
 end
 
-function Ferrite.vtk_save(path, model, dofs=model.dofs)
-    vtkfile = vtk_grid(path, model.dofhandler)
-    vtk_point_data(vtkfile, model.dofhandler, dofs)
-    vtk_save(vtkfile)
+function save_landau(path, model, dofs=model.dofs)
+    VTKFile(path, model.dofhandler) do vtk
+        write_solution(vtk, model.dofhandler, dofs)
+    end
 end
 
 macro assemble!(innerbody)
@@ -209,8 +209,8 @@ left = Vec{3}((-75.,-25.,-2.))
 right = Vec{3}((75.,25.,2.))
 model = LandauModel(α, G, (50, 50, 2), left, right, element_potential)
 
-vtk_save("landauorig", model)
+save_landau("landauorig", model)
 @time minimize!(model)
-vtk_save("landaufinal", model)
+save_landau("landaufinal", model)
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

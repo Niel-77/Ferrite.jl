@@ -12,20 +12,22 @@ x_cells = round(Int, 55/3)                  #hide
 y_cells = round(Int, 41/3)                  #hide
 grid = generate_grid(Quadrilateral, (x_cells, y_cells), Vec{2}((0.0, 0.0)), Vec{2}((2.2, 0.41)));
 
-cell_indices = filter(ci->norm(mean(map(i->grid.nodes[i].x-[0.2,0.2], Ferrite.vertices(grid.cells[ci]))))>0.05, 1:length(grid.cells))
-hole_cell_indices = filter(ci->norm(mean(map(i->grid.nodes[i].x-[0.2,0.2], Ferrite.vertices(grid.cells[ci]))))<=0.05, 1:length(grid.cells));
-hole_face_ring = Set{FaceIndex}()
+hole_center = Vec((0.2, 0.2))
+hole_radius = 0.05
+cell_indices = filter(ci -> norm(mean(getcoordinates(grid, ci) .- (hole_center,))) > hole_radius, 1:length(grid.cells))
+hole_cell_indices = filter(ci -> norm(mean(getcoordinates(grid, ci) .- (hole_center,))) <= hole_radius, 1:length(grid.cells));
+hole_facet_ring = Set{FacetIndex}()
 for hci ∈ hole_cell_indices
-    push!(hole_face_ring, FaceIndex((hci+1, 4)))
-    push!(hole_face_ring, FaceIndex((hci-1, 2)))
-    push!(hole_face_ring, FaceIndex((hci-x_cells, 3)))
-    push!(hole_face_ring, FaceIndex((hci+x_cells, 1)))
+    push!(hole_facet_ring, FacetIndex((hci+1, 4)))
+    push!(hole_facet_ring, FacetIndex((hci-1, 2)))
+    push!(hole_facet_ring, FacetIndex((hci-x_cells, 3)))
+    push!(hole_facet_ring, FacetIndex((hci+x_cells, 1)))
 end
-grid.facesets["hole"] = Set(filter(x->x.idx[1] ∉ hole_cell_indices, collect(hole_face_ring)));
-cell_indices_map = map(ci->norm(mean(map(i->grid.nodes[i].x-[0.2,0.2], Ferrite.vertices(grid.cells[ci]))))>0.05 ? indexin([ci], cell_indices)[1] : 0, 1:length(grid.cells))
+addfacetset!(grid, "hole", Set(filter(x->x.idx[1] ∉ hole_cell_indices, collect(hole_facet_ring))))
+cell_indices_map = map(ci -> norm(mean(getcoordinates(grid, ci) .- (hole_center,))) > 0.05 ? indexin([ci], cell_indices)[1] : 0, 1:length(grid.cells))
 grid.cells = grid.cells[cell_indices]
-for facesetname in keys(grid.facesets)
-    grid.facesets[facesetname] = Set(map(fi -> FaceIndex( cell_indices_map[fi.idx[1]] ,fi.idx[2]), collect(grid.facesets[facesetname])))
+for facetsetname in keys(grid.facetsets)
+    grid.facetsets[facetsetname] = Set(map(fi -> FacetIndex( cell_indices_map[fi.idx[1]] ,fi.idx[2]), collect(grid.facetsets[facetsetname])))
 end;
 
 grid = generate_grid(Quadrilateral, (x_cells, y_cells), Vec{2}((0.0, 0.0)), Vec{2}((0.55, 0.41)));   #hide
@@ -44,13 +46,13 @@ close!(dh);
 
 ch = ConstraintHandler(dh);
 
-nosplip_face_names = ["top", "bottom", "hole"];
-nosplip_face_names = ["top", "bottom"]                                  #hide
-∂Ω_noslip = union(getfaceset.((grid, ), nosplip_face_names)...);
+nosplip_facet_names = ["top", "bottom", "hole"];
+nosplip_facet_names = ["top", "bottom"]                                  #hide
+∂Ω_noslip = union(getfacetset.((grid, ), nosplip_facet_names)...);
 noslip_bc = Dirichlet(:v, ∂Ω_noslip, (x, t) -> [0,0], [1,2])
 add!(ch, noslip_bc);
 
-∂Ω_inflow = getfaceset(grid, "left");
+∂Ω_inflow = getfacetset(grid, "left");
 
 vᵢₙ(t) = clamp(t, 0.0, 1.0)*1.0 #inflow velocity
 vᵢₙ(t) = clamp(t, 0.0, 1.0)*0.3 #hide
@@ -58,7 +60,7 @@ parabolic_inflow_profile((x,y),t) = [4*vᵢₙ(t)*y*(0.41-y)/0.41^2,0]
 inflow_bc = Dirichlet(:v, ∂Ω_inflow, parabolic_inflow_profile, [1,2])
 add!(ch, inflow_bc);
 
-∂Ω_free = getfaceset(grid, "right");
+∂Ω_free = getfacetset(grid, "right");
 
 close!(ch)
 update!(ch, 0.0);
@@ -204,20 +206,18 @@ integrator = init(
     progress=true, progress_steps=1,
     saveat=Δt_save);
 
-pvd = paraview_collection("vortex-street.pvd");
+pvd = VTKFileCollection("vortex-street", grid);
 integrator = TimeChoiceIterator(integrator, 0.0:Δt_save:T)
 for (u_uc,t) in integrator
 
     update!(ch, t)
     u = copy(u_uc)
     apply!(u, ch)
-    vtk_grid("vortex-street-$t.vtu", dh) do vtk
-        vtk_point_data(vtk,dh,u)
-        vtk_save(vtk)
-        pvd[t] = vtk
+    addstep!(pvd, t) do io
+        write_solution(io, dh, u)
     end
 end
-vtk_save(pvd);
+close(pvd);
 
 using Test                                                                  #hide
 function compute_divergence(dh, u, cellvalues_v)                            #hide

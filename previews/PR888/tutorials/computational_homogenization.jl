@@ -1,6 +1,20 @@
 using Ferrite, SparseArrays, LinearAlgebra
 
 using FerriteGmsh
+
+function FerriteGmsh.tofacesets(boundarydict::Dict{String,Vector}, elements::Vector{Triangle})
+    faces = Ferrite.facets.(elements)
+    facesets = Dict{String,Set{FaceIndex}}()
+    for (boundaryname, boundaryfaces) in boundarydict
+        facesettuple = Set{FaceIndex}()
+        for boundaryface in boundaryfaces
+            FerriteGmsh._add_to_facesettuple!(facesettuple, boundaryface, faces)
+        end
+        facesets[boundaryname] = facesettuple
+    end
+    return facesets
+end
+
 # grid = togrid("periodic-rve-coarse.msh")
 grid = togrid("periodic-rve.msh")
 
@@ -16,7 +30,7 @@ close!(dh);
 ch_dirichlet = ConstraintHandler(dh)
 dirichlet = Dirichlet(
     :u,
-    union(getfaceset.(Ref(grid), ["left", "right", "top", "bottom"])...),
+    union(getfacetset.(Ref(grid), ["left", "right", "top", "bottom"])...),
     (x, t) ->  [0, 0],
     [1, 2]
 )
@@ -218,16 +232,16 @@ round.(ev; digits=-8)
 
 uM = zeros(ndofs(dh))
 
-vtk_grid("homogenization", dh) do vtk
+VTKFile("homogenization", dh) do vtk
     for i in 1:3
         # Compute macroscopic solution
         apply_analytical!(uM, dh, :u, x -> εᴹ[i] ⋅ x)
         # Dirichlet
-        vtk_point_data(vtk, dh, uM + u.dirichlet[i], "_dirichlet_$i")
-        vtk_point_data(vtk, projector, σ.dirichlet[i], "σvM_dirichlet_$i")
+        write_solution(vtk, dh, uM + u.dirichlet[i], "_dirichlet_$i")
+        write_projection(vtk, projector, σ.dirichlet[i], "σvM_dirichlet_$i")
         # Periodic
-        vtk_point_data(vtk, dh, uM + u.periodic[i], "_periodic_$i")
-        vtk_point_data(vtk, projector, σ.periodic[i], "σvM_periodic_$i")
+        write_solution(vtk, dh, uM + u.periodic[i], "_periodic_$i")
+        write_projection(vtk, projector, σ.periodic[i], "σvM_periodic_$i")
     end
 end;
 

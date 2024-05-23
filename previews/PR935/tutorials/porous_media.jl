@@ -1,20 +1,5 @@
 using Ferrite, FerriteMeshParser, Tensors
 
-function FerriteMeshParser.create_faceset(grid::Grid, nodeset::Ferrite.OrderedSet{Int}, cellset=1:getncells(grid))
-    faceset = sizehint!(Set{FaceIndex}(), length(nodeset))
-    for (cellid, cell) in enumerate(getcells(grid))
-        cellid ∈ cellset || continue
-        if any(n-> n ∈ nodeset, cell.nodes)
-            for (faceid, face) in enumerate(Ferrite.facets(cell))
-                if all(n -> n ∈ nodeset, face)
-                    push!(faceset, FaceIndex(cellid, faceid))
-                end
-            end
-        end
-    end
-    return faceset
-end
-
 struct Elastic{T}
     C::SymmetricTensor{4,2,T,9}
 end

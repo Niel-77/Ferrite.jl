@@ -62,9 +62,8 @@ close!(dh);</code></pre><h3 id="Boundary-Conditions"><a class="docs-heading-anch
 nosplip_face_names = [&quot;top&quot;, &quot;bottom&quot;, &quot;hole&quot;];
 ∂Ω_noslip = union(getfaceset.((grid, ), nosplip_face_names)...);
 noslip_bc = Dirichlet(:v, ∂Ω_noslip, (x, t) -&gt; Vec((0.0,0.0)), [1,2])
-add!(ch, noslip_bc);</code></pre><p>The left boundary has a parabolic inflow with peak velocity of 1.5. This ensures that for the given geometry the Reynolds number is 100, which is already enough to obtain some simple vortex streets. By increasing the velocity further we can obtain stronger vortices - which may need additional refinement of the grid. Note that we have to smoothly ramp up the velocity, because the Dirichlet constraints cannot be properly enforced yet, causing convergence issues.</p><pre><code class="language-julia hljs">∂Ω_inflow = getfaceset(grid, &quot;left&quot;);
+add!(ch, noslip_bc);</code></pre><p>The left boundary has a parabolic inflow with peak velocity of 1.5. This ensures that for the given geometry the Reynolds number is 100, which is already enough to obtain some simple vortex streets. By increasing the velocity further we can obtain stronger vortices - which may need additional refinement of the grid.</p><pre><code class="language-julia hljs">∂Ω_inflow = getfaceset(grid, &quot;left&quot;);</code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>The adaptivity only works if the pressure field varies smoothly enough in time. Linearly ramping up the velocity will cause fluctuations in the pressure field which will mess up the error estimators.</p></div></div><pre><code class="language-julia hljs">vᵢₙ(t) = t &lt; 2.0 ? 1.5*(sin(-π/2 + t*π/2)+1)/2 : 1.5 #inflow velocity
 
-vᵢₙ(t) = 1.5/(1+exp(-2.0*(t-2.0)))  #inflow velocity
 parabolic_inflow_profile(x,t) = Vec((4*vᵢₙ(t)*x[2]*(0.41-x[2])/0.41^2, 0.0))
 inflow_bc = Dirichlet(:v, ∂Ω_inflow, parabolic_inflow_profile, [1,2])
 add!(ch, inflow_bc);</code></pre><p>The outflow boundary condition has been applied on the right side of the cylinder when the weak form has been derived by setting the boundary integral to zero. It is also called the do-nothing condition. Other outflow conditions are also possible.</p><pre><code class="language-julia hljs">∂Ω_free = getfaceset(grid, &quot;right&quot;);
@@ -241,14 +240,16 @@ problem = ODEProblem(rhs, u₀, (0.0,T), p);</code></pre><p>All norms must not d
     ch::ConstraintHandler
 end
 (fe_norm::FreeDofErrorNorm)(u::Union{AbstractFloat, Complex}, t) = DiffEqBase.ODE_DEFAULT_NORM(u, t)
-(fe_norm::FreeDofErrorNorm)(u::AbstractArray, t) = DiffEqBase.ODE_DEFAULT_NORM(u[fe_norm.ch.free_dofs], t)</code></pre><p>Now we can put everything together by specifying how to solve the problem. We want to use an adaptive variant of the implicit Euler method. Further we enable the progress bar with the <code>progress</code> and <code>progress_steps</code> arguments. Finally we have to communicate the time step length and initialization algorithm. Since we start with a valid initial state we do not use one of DifferentialEquations.jl initialization algorithms.</p><div class="admonition is-info"><header class="admonition-header">DAE initialization</header><div class="admonition-body"><p>At the time of writing this <a href="https://github.com/SciML/OrdinaryDiffEq.jl/issues/1019">no Hessenberg index 2 initialization is implemented</a>.</p></div></div><p>To visualize the result we export the grid and our fields to VTK-files, which can be viewed in <a href="https://www.paraview.org/">ParaView</a> by utilizing the corresponding pvd file.</p><pre><code class="language-julia hljs">timestepper = ImplicitEuler(step_limiter! = ferrite_limiter!);</code></pre><p>timestepper = ImplicitEuler(nlsolve=NonlinearSolveAlg(OrdinaryDiffEq.NonlinearSolve.NewtonRaphson(autodiff=OrdinaryDiffEq.AutoFiniteDiff(), linsolve=FerriteBackslash()); max<em>iter=50), step</em>limiter! = ferrite_limiter!)</p><div class="admonition is-info"><header class="admonition-header">Adaptivity</header><div class="admonition-body"><p>In the used version <a href="https://github.com/SciML/OrdinaryDiffEq.jl/issues/2199">adaptivity with mass matrices is broken</a>.</p></div></div><pre><code class="language-julia hljs">integrator = init(
+(fe_norm::FreeDofErrorNorm)(u::AbstractArray, t) = DiffEqBase.ODE_DEFAULT_NORM(u[fe_norm.ch.free_dofs], t)</code></pre><p>Now we can put everything together by specifying how to solve the problem. We want to use an adaptive variant of the implicit Euler method. Further we enable the progress bar with the <code>progress</code> and <code>progress_steps</code> arguments. Finally we have to communicate the time step length and initialization algorithm. Since we start with a valid initial state we do not use one of DifferentialEquations.jl initialization algorithms.</p><div class="admonition is-info"><header class="admonition-header">DAE initialization</header><div class="admonition-body"><p>At the time of writing this <a href="https://github.com/SciML/OrdinaryDiffEq.jl/issues/1019">no Hessenberg index 2 initialization is implemented</a>.</p></div></div><p>To visualize the result we export the grid and our fields to VTK-files, which can be viewed in <a href="https://www.paraview.org/">ParaView</a> by utilizing the corresponding pvd file.</p><pre><code class="language-julia hljs">timestepper = Rodas5P(autodiff=false, step_limiter! = ferrite_limiter!);</code></pre><p>timestepper = ImplicitEuler(nlsolve=NonlinearSolveAlg(OrdinaryDiffEq.NonlinearSolve.NewtonRaphson(autodiff=OrdinaryDiffEq.AutoFiniteDiff()); max<em>iter=50), step</em>limiter! = ferrite_limiter!)</p><div class="admonition is-info"><header class="admonition-header">Debugging convergence issues</header><div class="admonition-body"><p>We can obtain some debug information from OrdinaryDiffEq by wrapping the following section into a <a href="https://docs.julialang.org/en/v1/stdlib/Logging/#Example:-Enable-debug-level-messages">debug logger</a>.</p></div></div><pre><code class="language-julia hljs">integrator = init(
     problem, timestepper, initializealg=NoInit(), dt=Δt₀,
-    adaptive=false, abstol=1e-5, reltol=1e-4,
+    adaptive=true, abstol=1e-4, reltol=1e-5,
     progress=true, progress_steps=1,
     verbose=true, internalnorm=FreeDofErrorNorm(ch)
 );
 
-pvd = paraview_collection(&quot;vortex-street.pvd&quot;);</code></pre><p>integrator = TimeChoiceIterator(integrator, 0.0:Δt_save:T) for (u,t) in integrator # broken</p><pre><code class="language-julia hljs">for (u,t) in intervals(integrator)</code></pre><p>We ignored the Dirichlet constraints in the solution vector up to now, so we have to bring them back now.</p><pre><code class="language-julia hljs">    vtk_grid(&quot;vortex-street-$t.vtu&quot;, dh) do vtk
+pvd = paraview_collection(&quot;vortex-street.pvd&quot;);
+
+for (u,t) in TimeChoiceIterator(integrator, 0.0:Δt_save:T)</code></pre><p>We ignored the Dirichlet constraints in the solution vector up to now, so we have to bring them back now.</p><pre><code class="language-julia hljs">    vtk_grid(&quot;vortex-street-$t.vtu&quot;, dh) do vtk
         vtk_point_data(vtk,dh,u)
         vtk_save(vtk)
         pvd[t] = vtk
@@ -311,7 +312,8 @@ add!(ch, noslip_bc);
 
 ∂Ω_inflow = getfaceset(grid, &quot;left&quot;);
 
-vᵢₙ(t) = 1.5/(1+exp(-2.0*(t-2.0)))  #inflow velocity
+vᵢₙ(t) = t &lt; 2.0 ? 1.5*(sin(-π/2 + t*π/2)+1)/2 : 1.5 #inflow velocity
+
 parabolic_inflow_profile(x,t) = Vec((4*vᵢₙ(t)*x[2]*(0.41-x[2])/0.41^2, 0.0))
 inflow_bc = Dirichlet(:v, ∂Ω_inflow, parabolic_inflow_profile, [1,2])
 add!(ch, inflow_bc);
@@ -527,18 +529,18 @@ end
 (fe_norm::FreeDofErrorNorm)(u::Union{AbstractFloat, Complex}, t) = DiffEqBase.ODE_DEFAULT_NORM(u, t)
 (fe_norm::FreeDofErrorNorm)(u::AbstractArray, t) = DiffEqBase.ODE_DEFAULT_NORM(u[fe_norm.ch.free_dofs], t)
 
-timestepper = ImplicitEuler(step_limiter! = ferrite_limiter!);
+timestepper = Rodas5P(autodiff=false, step_limiter! = ferrite_limiter!);
 
 integrator = init(
     problem, timestepper, initializealg=NoInit(), dt=Δt₀,
-    adaptive=false, abstol=1e-5, reltol=1e-4,
+    adaptive=true, abstol=1e-4, reltol=1e-5,
     progress=true, progress_steps=1,
     verbose=true, internalnorm=FreeDofErrorNorm(ch)
 );
 
 pvd = paraview_collection(&quot;vortex-street.pvd&quot;);
 
-for (u,t) in intervals(integrator)
+for (u,t) in TimeChoiceIterator(integrator, 0.0:Δt_save:T)
 
     vtk_grid(&quot;vortex-street-$t.vtu&quot;, dh) do vtk
         vtk_point_data(vtk,dh,u)
@@ -546,4 +548,4 @@ for (u,t) in intervals(integrator)
         pvd[t] = vtk
     end
 end
-vtk_save(pvd);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../porous_media/">« Porous media</a><a class="docs-footer-nextpage" href="../linear_shell/">Linear shell »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Friday 17 May 2024 17:43">Friday 17 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+vtk_save(pvd);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../porous_media/">« Porous media</a><a class="docs-footer-nextpage" href="../linear_shell/">Linear shell »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Thursday 23 May 2024 21:42">Thursday 23 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

@@ -73,7 +73,8 @@ add!(ch, noslip_bc);
 
 ∂Ω_inflow = getfaceset(grid, "left");
 
-vᵢₙ(t) = 1.5/(1+exp(-2.0*(t-2.0)))  #inflow velocity
+vᵢₙ(t) = t < 2.0 ? 1.5*(sin(-π/2 + t*π/2)+1)/2 : 1.5 #inflow velocity
+
 parabolic_inflow_profile(x,t) = Vec((4*vᵢₙ(t)*x[2]*(0.41-x[2])/0.41^2, 0.0))
 inflow_bc = Dirichlet(:v, ∂Ω_inflow, parabolic_inflow_profile, [1,2])
 add!(ch, inflow_bc);
@@ -292,18 +293,18 @@ end
 (fe_norm::FreeDofErrorNorm)(u::Union{AbstractFloat, Complex}, t) = DiffEqBase.ODE_DEFAULT_NORM(u, t)
 (fe_norm::FreeDofErrorNorm)(u::AbstractArray, t) = DiffEqBase.ODE_DEFAULT_NORM(u[fe_norm.ch.free_dofs], t)
 
-timestepper = ImplicitEuler(step_limiter! = ferrite_limiter!);
+timestepper = Rodas5P(autodiff=false, step_limiter! = ferrite_limiter!);
 
 integrator = init(
     problem, timestepper, initializealg=NoInit(), dt=Δt₀,
-    adaptive=false, abstol=1e-5, reltol=1e-4,
+    adaptive=true, abstol=1e-4, reltol=1e-5,
     progress=true, progress_steps=1,
     verbose=true, internalnorm=FreeDofErrorNorm(ch)
 );
 
 pvd = paraview_collection("vortex-street.pvd");
 
-for (u,t) in intervals(integrator)
+for (u,t) in TimeChoiceIterator(integrator, 0.0:Δt_save:T)
 
     vtk_grid("vortex-street-$t.vtu", dh) do vtk
         vtk_point_data(vtk,dh,u)

@@ -1,7 +1,10 @@
 # Putting this flag to false reproduces the figure shown in the example #src
 # We check for laminar flow development in the CI                       #src
-IS_CI = true #hide
-
+if @isdefined is_ci    #hide
+    IS_CI = false      #hide
+else                   #hide
+    IS_CI = true       #hide
+end                    #hide
 # # [Incompressible Navier-Stokes equations via DifferentialEquations.jl](@id tutorial-ins-ordinarydiffeq)
 #
 # ![](https://user-images.githubusercontent.com/9196588/134514213-76d91d34-19ab-47c2-957e-16bb0c8669e1.gif)

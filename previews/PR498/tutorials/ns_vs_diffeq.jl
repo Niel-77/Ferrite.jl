@@ -1,4 +1,8 @@
-IS_CI = true #hide
+if @isdefined is_ci    #hide
+    IS_CI = false      #hide
+else                   #hide
+    IS_CI = true       #hide
+end                    #hide
 
 using Ferrite, SparseArrays, BlockArrays, LinearAlgebra, UnPack, LinearSolve
 

@@ -9,5 +9,7 @@
     <DataSet timestep="6" part="0" file="heat_amr_6.vtu"/>
     <DataSet timestep="7" part="0" file="heat_amr_7.vtu"/>
     <DataSet timestep="8" part="0" file="heat_amr_8.vtu"/>
+    <DataSet timestep="9" part="0" file="heat_amr_9.vtu"/>
+    <DataSet timestep="10" part="0" file="heat_amr_10.vtu"/>
   </Collection>
 </VTKFile>

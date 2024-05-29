@@ -101,13 +101,22 @@ u_y(0,\nu) &amp;= u_x(\nu, 0) \quad &amp; \nu\ \in\ [0.5, 1],
     # Finalize the Gmsh library
     Gmsh.finalize()
 
+    # Temp fix for FerriteGmsh
+    # for setname in [&quot;Γ1&quot;, &quot;Γ2&quot;, &quot;Γ3&quot;, &quot;Γ4&quot;]
+    #    faceset = grid.facesets[setname]
+    #    edgeset = Set([EdgeIndex(f[1], f[2]) for f in faceset])
+    #    grid.edgesets[setname] = edgeset
+    #    delete!(grid.facesets, setname)
+    # end
+    # =#
+
     return grid
 end</code></pre><h3 id="Degrees-of-freedom"><a class="docs-heading-anchor" href="#Degrees-of-freedom">Degrees of freedom</a><a id="Degrees-of-freedom-1"></a><a class="docs-heading-anchor-permalink" href="#Degrees-of-freedom" title="Permalink"></a></h3><p>As mentioned in the introduction we will use a quadratic approximation for the velocity field and a linear approximation for the pressure to ensure that we fulfill the LBB condition. We create the corresponding FE values with interpolations <code>ipu</code> for the velocity and <code>ipp</code> for the pressure. Note that we specify linear geometric mapping (<code>ipg</code>) for both the velocity and pressure because our grid contains linear triangles. However, since linear mapping is default this could have been skipped. We also construct face-values for the pressure since we need to integrate along the boundary when assembling the constraint matrix <span>$\underline{\underline{C}}$</span>.</p><pre><code class="language-julia hljs">function setup_fevalues(ipu, ipp, ipg)
     qr = QuadratureRule{RefTriangle}(2)
     cvu = CellValues(qr, ipu, ipg)
     cvp = CellValues(qr, ipp, ipg)
-    qr_face = FaceQuadratureRule{RefTriangle}(2)
-    fvp = FaceValues(qr_face, ipp, ipg)
+    qr_facet = FacetQuadratureRule{RefTriangle}(2)
+    fvp = FacetValues(qr_facet, ipp, ipg)
     return cvu, cvp, fvp
 end</code></pre><p>The <code>setup_dofs</code> function creates the <code>DofHandler</code>, and adds the two fields: a vector field <code>:u</code> with interpolation <code>ipu</code>, and a scalar field <code>:p</code> with interpolation <code>ipp</code>.</p><pre><code class="language-julia hljs">function setup_dofs(grid, ipu, ipp)
     dh = DofHandler(grid)
@@ -119,10 +128,10 @@ end</code></pre><h3 id="Boundary-conditions-and-constraints"><a class="docs-head
     assembler = start_assemble()
     # All external boundaries
     set = union(
-        getfaceset(dh.grid, &quot;Γ1&quot;),
-        getfaceset(dh.grid, &quot;Γ2&quot;),
-        getfaceset(dh.grid, &quot;Γ3&quot;),
-        getfaceset(dh.grid, &quot;Γ4&quot;),
+        getfacetset(dh.grid, &quot;Γ1&quot;),
+        getfacetset(dh.grid, &quot;Γ2&quot;),
+        getfacetset(dh.grid, &quot;Γ3&quot;),
+        getfacetset(dh.grid, &quot;Γ4&quot;),
     )
     # Allocate buffers
     range_p = dof_range(dh, :p)
@@ -157,15 +166,15 @@ end</code></pre><h3 id="Boundary-conditions-and-constraints"><a class="docs-head
         0.0,
     )
     return mean_value_constraint
-end</code></pre><p>We now setup all the boundary conditions in the <code>setup_constraints</code> function below. Since the periodicity constraint for this example is between two boundaries which are not parallel to each other we need to i) compute the mapping between each mirror face and the corresponding image face (on the element level) and ii) describe the dof relation between dofs on these two faces. In Ferrite this is done by defining a transformation of entities on the image boundary such that they line up with the matching entities on the mirror boundary. In this example we consider the inlet <span>$\Gamma_1$</span> to be the image, and the outlet <span>$\Gamma_3$</span> to be the mirror. The necessary transformation to apply then becomes a rotation of <span>$\pi/2$</span> radians around the out-of-plane axis. We set up the rotation matrix <code>R</code>, and then compute the mapping between mirror and image faces using <a href="../../reference/boundary_conditions/#Ferrite.collect_periodic_faces"><code>collect_periodic_faces</code></a> where the rotation is applied to the coordinates. In the next step we construct the constraint using the <a href="../../reference/boundary_conditions/#Ferrite.PeriodicDirichlet"><code>PeriodicDirichlet</code></a> constructor. We pass the constructor the computed mapping, and also the rotation matrix. This matrix is used to rotate the dofs on the mirror surface such that we properly constrain <span>$\boldsymbol{u}_x$</span>-dofs on the mirror to <span>$-\boldsymbol{u}_y$</span>-dofs on the image, and <span>$\boldsymbol{u}_y$</span>-dofs on the mirror to <span>$\boldsymbol{u}_x$</span>-dofs on the image.</p><p>For the remaining part of the boundary we add a homogeneous Dirichlet boundary condition on both components of the velocity field. This is done using the <a href="../../reference/boundary_conditions/#Ferrite.Dirichlet"><code>Dirichlet</code></a> constructor, which we have discussed in other tutorials.</p><pre><code class="language-julia hljs">function setup_constraints(dh, fvp)
+end</code></pre><p>We now setup all the boundary conditions in the <code>setup_constraints</code> function below. Since the periodicity constraint for this example is between two boundaries which are not parallel to each other we need to i) compute the mapping between each mirror face and the corresponding image face (on the element level) and ii) describe the dof relation between dofs on these two faces. In Ferrite this is done by defining a transformation of entities on the image boundary such that they line up with the matching entities on the mirror boundary. In this example we consider the inlet <span>$\Gamma_1$</span> to be the image, and the outlet <span>$\Gamma_3$</span> to be the mirror. The necessary transformation to apply then becomes a rotation of <span>$\pi/2$</span> radians around the out-of-plane axis. We set up the rotation matrix <code>R</code>, and then compute the mapping between mirror and image faces using <a href="../../reference/boundary_conditions/#Ferrite.collect_periodic_facets"><code>collect_periodic_facets</code></a> where the rotation is applied to the coordinates. In the next step we construct the constraint using the <a href="../../reference/boundary_conditions/#Ferrite.PeriodicDirichlet"><code>PeriodicDirichlet</code></a> constructor. We pass the constructor the computed mapping, and also the rotation matrix. This matrix is used to rotate the dofs on the mirror surface such that we properly constrain <span>$\boldsymbol{u}_x$</span>-dofs on the mirror to <span>$-\boldsymbol{u}_y$</span>-dofs on the image, and <span>$\boldsymbol{u}_y$</span>-dofs on the mirror to <span>$\boldsymbol{u}_x$</span>-dofs on the image.</p><p>For the remaining part of the boundary we add a homogeneous Dirichlet boundary condition on both components of the velocity field. This is done using the <a href="../../reference/boundary_conditions/#Ferrite.Dirichlet"><code>Dirichlet</code></a> constructor, which we have discussed in other tutorials.</p><pre><code class="language-julia hljs">function setup_constraints(dh, fvp)
     ch = ConstraintHandler(dh)
     # Periodic BC
     R = rotation_tensor(π / 2)
-    periodic_faces = collect_periodic_faces(dh.grid, &quot;Γ3&quot;, &quot;Γ1&quot;, x -&gt; R ⋅ x)
+    periodic_faces = collect_periodic_facets(dh.grid, &quot;Γ3&quot;, &quot;Γ1&quot;, x -&gt; R ⋅ x)
     periodic = PeriodicDirichlet(:u, periodic_faces, R, [1, 2])
     add!(ch, periodic)
     # Dirichlet BC
-    Γ24 = union(getfaceset(dh.grid, &quot;Γ2&quot;), getfaceset(dh.grid, &quot;Γ4&quot;))
+    Γ24 = union(getfacetset(dh.grid, &quot;Γ2&quot;), getfacetset(dh.grid, &quot;Γ4&quot;))
     dbc = Dirichlet(:u, Γ24, (x, t) -&gt; [0, 0], [1, 2])
     add!(ch, dbc)
     # Compute mean value constraint and add it
@@ -250,8 +259,8 @@ end</code></pre><h3 id="Running-the-simulation"><a class="docs-heading-anchor" h
     u = K \ f
     apply!(u, ch)
     # Export the solution
-    vtk_grid(&quot;stokes-flow&quot;, grid) do vtk
-        vtk_point_data(vtk, dh, u)
+    VTKFile(&quot;stokes-flow&quot;, grid) do vtk
+        write_solution(vtk, dh, u)
     end
 
 
@@ -313,6 +322,15 @@ function setup_grid(h=0.05)
     # Finalize the Gmsh library
     Gmsh.finalize()
 
+    # Temp fix for FerriteGmsh
+    # for setname in [&quot;Γ1&quot;, &quot;Γ2&quot;, &quot;Γ3&quot;, &quot;Γ4&quot;]
+    #    faceset = grid.facesets[setname]
+    #    edgeset = Set([EdgeIndex(f[1], f[2]) for f in faceset])
+    #    grid.edgesets[setname] = edgeset
+    #    delete!(grid.facesets, setname)
+    # end
+    # =#
+
     return grid
 end
 
@@ -320,8 +338,8 @@ function setup_fevalues(ipu, ipp, ipg)
     qr = QuadratureRule{RefTriangle}(2)
     cvu = CellValues(qr, ipu, ipg)
     cvp = CellValues(qr, ipp, ipg)
-    qr_face = FaceQuadratureRule{RefTriangle}(2)
-    fvp = FaceValues(qr_face, ipp, ipg)
+    qr_facet = FacetQuadratureRule{RefTriangle}(2)
+    fvp = FacetValues(qr_facet, ipp, ipg)
     return cvu, cvp, fvp
 end
 
@@ -337,10 +355,10 @@ function setup_mean_constraint(dh, fvp)
     assembler = start_assemble()
     # All external boundaries
     set = union(
-        getfaceset(dh.grid, &quot;Γ1&quot;),
-        getfaceset(dh.grid, &quot;Γ2&quot;),
-        getfaceset(dh.grid, &quot;Γ3&quot;),
-        getfaceset(dh.grid, &quot;Γ4&quot;),
+        getfacetset(dh.grid, &quot;Γ1&quot;),
+        getfacetset(dh.grid, &quot;Γ2&quot;),
+        getfacetset(dh.grid, &quot;Γ3&quot;),
+        getfacetset(dh.grid, &quot;Γ4&quot;),
     )
     # Allocate buffers
     range_p = dof_range(dh, :p)
@@ -381,11 +399,11 @@ function setup_constraints(dh, fvp)
     ch = ConstraintHandler(dh)
     # Periodic BC
     R = rotation_tensor(π / 2)
-    periodic_faces = collect_periodic_faces(dh.grid, &quot;Γ3&quot;, &quot;Γ1&quot;, x -&gt; R ⋅ x)
+    periodic_faces = collect_periodic_facets(dh.grid, &quot;Γ3&quot;, &quot;Γ1&quot;, x -&gt; R ⋅ x)
     periodic = PeriodicDirichlet(:u, periodic_faces, R, [1, 2])
     add!(ch, periodic)
     # Dirichlet BC
-    Γ24 = union(getfaceset(dh.grid, &quot;Γ2&quot;), getfaceset(dh.grid, &quot;Γ4&quot;))
+    Γ24 = union(getfacetset(dh.grid, &quot;Γ2&quot;), getfacetset(dh.grid, &quot;Γ4&quot;))
     dbc = Dirichlet(:u, Γ24, (x, t) -&gt; [0, 0], [1, 2])
     add!(ch, dbc)
     # Compute mean value constraint and add it
@@ -474,12 +492,12 @@ function main()
     u = K \ f
     apply!(u, ch)
     # Export the solution
-    vtk_grid(&quot;stokes-flow&quot;, grid) do vtk
-        vtk_point_data(vtk, dh, u)
+    VTKFile(&quot;stokes-flow&quot;, grid) do vtk
+        write_solution(vtk, dh, u)
     end
 
 
     return
 end
 
-main()</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../computational_homogenization/">« Computational homogenization</a><a class="docs-footer-nextpage" href="../porous_media/">Porous media »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.1 on <span class="colophon-date" title="Wednesday 31 January 2024 15:56">Wednesday 31 January 2024</span>. Using Julia version 1.10.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+main()</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../computational_homogenization/">« Computational homogenization</a><a class="docs-footer-nextpage" href="../porous_media/">Porous media »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Wednesday 29 May 2024 18:12">Wednesday 29 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

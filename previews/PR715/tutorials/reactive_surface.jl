@@ -1,3 +1,9 @@
+if @isdefined is_ci    #hide
+    IS_CI = is_ci      #hide
+else                   #hide
+    IS_CI = false      #hide
+end                    #hide
+
 using Ferrite, FerriteGmsh
 using BlockArrays, SparseArrays, LinearAlgebra
 
@@ -96,7 +102,7 @@ function setup_initial_conditions!(u₀::Vector, cellvalues::CellValues, dh::Dof
     u₀ .+= 0.01*rand(ndofs(dh))
 end
 
-function gray_scott_sphere(F, k, Δt, T)
+function gray_scott_sphere(F, k, Δt, T, refinements)
     # We start by setting up grid, dof handler and the matrices for the heat problem.
     gmsh.initialize()
 
@@ -107,8 +113,11 @@ function gray_scott_sphere(F, k, Δt, T)
     gmsh.model.mesh.renumberNodes()
     gmsh.model.mesh.renumberElements()
 
-    # Generate surface elements
+    # Generate surface elements and refine several times
     gmsh.model.mesh.generate(2)
+    for _ in 1:refinements
+        gmsh.model.mesh.refine()
+    end
 
     # Create a grid out of it
     nodes = tonodes()
@@ -140,11 +149,9 @@ function gray_scott_sphere(F, k, Δt, T)
     setup_initial_conditions!(uₜ₋₁, cellvalues, dh)
 
     # And prepare output for visualization.
-    pvd = paraview_collection("reactive-surface.pvd");
-    vtk_grid("reactive-surface-0.0.vtu", dh) do vtk
-        vtk_point_data(vtk, dh, uₜ₋₁)
-        vtk_save(vtk)
-        pvd[0.0] = vtk
+    pvd = VTKFileCollection("reactive-surface.pvd", dh);
+    addstep!(pvd, 0.0) do io
+        write_solution(io, dh, uₜ₋₁)
     end
 
     # This is now the main solve loop.
@@ -165,10 +172,8 @@ function gray_scott_sphere(F, k, Δt, T)
         # The solution is then stored every 10th step to vtk files for
         # later visualization purposes.
         if (iₜ % 10) == 0
-            vtk_grid("reactive-surface-$t.vtu", dh) do vtk
-                vtk_point_data(vtk, dh, uₜ)
-                vtk_save(vtk)
-                pvd[t] = vtk
+            addstep!(pvd, t) do io
+                write_solution(io, dh, uₜ₋₁)
             end
         end
 
@@ -176,10 +181,10 @@ function gray_scott_sphere(F, k, Δt, T)
         uₜ₋₁ .= uₜ
     end
 
-    vtk_save(pvd);
+    close(pvd);
 end
 
 # This parametrization gives the spot pattern shown in the gif above.
-gray_scott_sphere(0.06, 0.062, 10.0, 32000.0)
+gray_scott_sphere(0.06, 0.062, 10.0, 32000.0, 3)
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

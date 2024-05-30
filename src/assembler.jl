@@ -242,7 +242,8 @@ end
     Kvals = nonzeros(K)
 
     # We assume that the input dofs are not sorted, because the cells need the dofs in
-    # a specific order, which might not be the sorted orer. Hence 
+    # a specific order, which might not be the sorted order. Hence we sort them.
+    # Note that we are not allowed to mutate `dofs` in the process.
     sorteddofs, permutation = _sortdofs_for_assembly(A, dofs)
 
     current_col = 1

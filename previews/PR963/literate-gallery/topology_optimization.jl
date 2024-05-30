@@ -189,8 +189,7 @@ end
 # We iterate through each face of each element,
 # obtaining the neighboring element by using the `getneighborhood` function. For boundary faces,
 # the function call will return an empty object. In that case we use the dictionary to instead find the opposite
-# face, as discussed in the introduction. Then, the approximation of the Laplacian reduces to the sum below.
-
+# face, as discussed in the introduction.
 
 function cache_neighborhood(dh, topology)
     nbgs = Vector{Vector{Int}}(undef, getncells(dh.grid))

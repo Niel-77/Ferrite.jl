@@ -1,15 +1,19 @@
 abstract type AbstractSparseAssembler end
 abstract type AbstractSparseCSCAssembler <: AbstractSparseAssembler end
 
-struct Assembler{T}
+"""
+This assembler creates a COO representation of a sparse matrix during
+assembly and converts it into a `SparseMatrixCSC{T}` on finalization.
+"""
+struct COOAssembler{T}
     I::Vector{Int}
     J::Vector{Int}
     V::Vector{T}
 end
 
-Assembler(N) = Assembler(Float64, N)
+COOAssembler(N) = COOAssembler(Float64, N)
 
-function Assembler(::Type{T}, N) where T
+function COOAssembler(::Type{T}, N) where T
     I = Int[]
     J = Int[]
     V = T[]
@@ -17,11 +21,11 @@ function Assembler(::Type{T}, N) where T
     sizehint!(J, N)
     sizehint!(V, N)
 
-    Assembler(I, J, V)
+    COOAssembler(I, J, V)
 end
 
 """
-    start_assemble([N=0]) -> Assembler
+    start_assemble([N=0]) -> COOAssembler
 
 Create an `Assembler` object which can be used to assemble element contributions to the
 global sparse matrix. Use [`assemble!`](@ref) for each element, and [`finish_assemble`](@ref),
@@ -36,24 +40,28 @@ as described in the [manual](@ref man-assembly).
     the same pattern. See the [manual section](@ref man-assembly) on assembly.
 """
 function start_assemble(N::Int=0)
-    return Assembler(N)
+    return start_assemble(Float64, N)
+end
+
+function start_assemble(t::Type{T}, N::Int=0) where T
+    return COOAssembler(t, N)
 end
 
 """
-    assemble!(a::Assembler, dofs, Ke)
+    assemble!(a::COOAssembler, dofs, Ke)
 
 Assembles the element matrix `Ke` into `a`.
 """
-function assemble!(a::Assembler{T}, dofs::AbstractVector{Int}, Ke::AbstractMatrix{T}) where {T}
+function assemble!(a::COOAssembler{T}, dofs::AbstractVector{Int}, Ke::AbstractMatrix{T}) where {T}
     assemble!(a, dofs, dofs, Ke)
 end
 
 """
-    assemble!(a::Assembler, rowdofs, coldofs, Ke)
+    assemble!(a::COOAssembler, rowdofs, coldofs, Ke)
 
 Assembles the matrix `Ke` into `a` according to the dofs specified by `rowdofs` and `coldofs`.
 """
-function assemble!(a::Ferrite.Assembler{T}, rowdofs::AbstractVector{Int}, coldofs::AbstractVector{Int}, Ke::AbstractMatrix{T}) where {T}
+function assemble!(a::COOAssembler{T}, rowdofs::AbstractVector{Int}, coldofs::AbstractVector{Int}, Ke::AbstractMatrix{T}) where {T}
     nrows = length(rowdofs)
     ncols = length(coldofs)
 
@@ -70,12 +78,12 @@ function assemble!(a::Ferrite.Assembler{T}, rowdofs::AbstractVector{Int}, coldof
 end
 
 """
-    finish_assemble(a::Assembler) -> K
+    finish_assemble(a::COOAssembler) -> K
 
 Finalizes an assembly. Returns a sparse matrix with the
-assembled values. Note that this step is not necessary for `AbstractSparseAssembler`s.
+assembled values. Note that this step is not necessary for the standard `AbstractSparseAssembler`s.
 """
-function finish_assemble(a::Assembler)
+function finish_assemble(a::COOAssembler)
     return sparse(a.I, a.J, a.V)
 end
 
@@ -113,12 +121,19 @@ get_matrix, get_vector
 get_vector(a::AbstractSparseAssembler) = a.f
 get_matrix(a::AbstractSparseAssembler) = a.K
 
+"""
+Assembler for sparse matrix with CSC storage type.
+"""
 struct CSCAssembler{Tv,Ti,MT<:AbstractSparseMatrixCSC{Tv,Ti}} <: AbstractSparseCSCAssembler
     K::MT
     f::Vector{Tv}
     permutation::Vector{Int}
     sorteddofs::Vector{Int}
 end
+
+"""
+Assembler for symmetric sparse matrix with CSC storage type.
+"""
 struct SymmetricCSCAssembler{Tv,Ti, MT <: Symmetric{Tv,<:AbstractSparseMatrixCSC{Tv,Ti}}} <: AbstractSparseCSCAssembler
     K::MT
     f::Vector{Tv}
@@ -169,6 +184,8 @@ function start_assemble(K::Symmetric{T,<:SparseMatrixCSC}, f::Vector=T[]; fillze
     return SymmetricCSCAssembler(K, f, zeros(Int,sizehint), zeros(Int,sizehint))
 end
 
+finish_assemble(a::AbstractSparseCSCAssembler) = get_matrix(a)
+
 """
     assemble!(A::AbstractSparseAssembler, dofs::AbstractVector{Int}, Ke::AbstractMatrix)
     assemble!(A::AbstractSparseAssembler, dofs::AbstractVector{Int}, Ke::AbstractMatrix, fe::AbstractVector)
@@ -194,6 +211,11 @@ end
     _assemble!(A, dofs, Ke, fe, true)
 end
 
+"""
+    _sortdofs_for_assembly(A::AbstractSparseAssembler, dofs::AbstractVector) -> sorteddofs, permutation
+
+Sorts the dofs into a separate buffer and returns it together with a permutation vector.
+"""
 @propagate_inbounds function _sortdofs_for_assembly(A::AbstractSparseAssembler, dofs::AbstractVector)
     ld = length(dofs)
     permutation = A.permutation
@@ -313,6 +335,11 @@ end
 
 # Sort utilities
 
+"""
+    sortperm2!(data::AbstractVector, permutation::AbstractVector)
+
+Sort the input vector inplace and compute the corresponding permutation.
+"""
 function sortperm2!(B, ii)
    @inbounds for i = 1:length(B)
       ii[i] = i

@@ -96,9 +96,22 @@ end
     matrix_handle(a::AbstractSparseAssembler)
     vector_handle(a::AbstractSparseAssembler)
 
-Return a reference to the underlying matrix/vector of the assembler.
+Return a reference to the underlying matrix/vector of the assembler used during
+assembly operations.
 """
 matrix_handle, vector_handle
+
+"""
+    get_matrix(a::AbstractSparseAssembler)
+    get_vector(a::AbstractSparseAssembler)
+
+Return a reference to the matrix into which we assemble.
+The returned object might differ from [`matrix_handle`](@ref).
+"""
+get_matrix, get_vector
+
+get_vector(a::AbstractSparseAssembler) = a.f
+get_matrix(a::AbstractSparseAssembler) = a.K
 
 struct CSCAssembler{Tv,Ti,MT<:AbstractSparseMatrixCSC{Tv,Ti}} <: AbstractSparseCSCAssembler
     K::MT
@@ -115,8 +128,8 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", a::AbstractSparseAssembler)
     print(io, typeof(a), " for assembling into:\n - ")
-    summary(io, matrix_handle(a))
-    f = vector_handle(a)
+    summary(io, get_matrix(a))
+    f = get_vector(a)
     if !isempty(f)
         print(io, "\n - ")
         summary(io, f)

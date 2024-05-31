@@ -124,8 +124,7 @@ function setup_initial_conditions!(u₀::Vector, cellvalues::CellValues, dh::Dof
     u₀ .+= 0.01*rand(ndofs(dh))
 end;
 
-function gray_scott_sphere(material::GrayScottMaterial, Δt::Real, T::Real, refinements::Integer)
-    # We start by setting up grid, dof handler and the matrices for the heat problem.
+function create_embedded_sphere(refinements)
     gmsh.initialize()
 
     # Add a unit sphere in 3D space
@@ -146,6 +145,11 @@ function gray_scott_sphere(material::GrayScottMaterial, Δt::Real, T::Real, refi
     elements, _ = toelements(2)
     gmsh.finalize()
     grid = Grid(elements, nodes);
+end
+
+function gray_scott_on_sphere(material::GrayScottMaterial, Δt::Real, T::Real, refinements::Integer)
+    # We start by setting up grid, dof handler and the matrices for the heat problem.
+    grid = create_embedded_sphere(refinements)
 
     # Next we are creating our element assembly helper for surface elements.
     # The only change which we need to introduce here is to pass in a geometrical
@@ -200,7 +204,7 @@ function gray_scott_sphere(material::GrayScottMaterial, Δt::Real, T::Real, refi
 
         # Then we solve the point-wise reaction problem with the solution of
         # the heat problem as initial guess. 2 is the number of reactants.
-        num_individual_reaction_dofs = Int(ndofs(dh)/2)
+        num_individual_reaction_dofs = ndofs(dh) ÷ 2
         rvₜ = reshape(uₜ, (2, num_individual_reaction_dofs))
         for i ∈ 1:num_individual_reaction_dofs
             r₁ = rvₜ[1, i]
@@ -226,6 +230,6 @@ end
 
 # This parametrization gives the spot pattern shown in the gif above.
 material = GrayScottMaterial(0.00016, 0.00008, 0.06, 0.062)
-gray_scott_sphere(material, 10.0, 32000.0, 3)
+gray_scott_on_sphere(material, 10.0, 32000.0, 3)
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

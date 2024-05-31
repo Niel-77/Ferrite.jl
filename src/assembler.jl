@@ -2,7 +2,7 @@ abstract type AbstractSparseAssembler end
 abstract type AbstractSparseCSCAssembler <: AbstractSparseAssembler end
 
 """
-This assembler creates a COO representation of a sparse matrix during
+This assembler creates a COO (**coo**rdinate format) representation of a sparse matrix during
 assembly and converts it into a `SparseMatrixCSC{T}` on finalization.
 """
 struct COOAssembler{T}
@@ -292,8 +292,8 @@ function _missing_sparsity_pattern_error(Krow::Int, Kcol::Int)
         "$(Kcol)] is missing in the sparsity pattern. Make sure you have called `K = " *
         "create_sparsity_pattern(dh)` or `K = create_sparsity_pattern(dh, ch)` if you " *
         "have affine constraints. This error might also happen if you are using " *
-        "`::CSCAssembler` in a threaded assembly loop (you need to create an " *
-        "`assembler::CSCAssembler` for each task)."
+        "the assembler in a threaded assembly loop (you need to create one " *
+        "`assembler` for each task)."
     ))
 end
 

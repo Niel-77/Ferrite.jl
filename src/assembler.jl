@@ -156,13 +156,13 @@ matrix_handle(a::SymmetricCSCAssembler) = a.K.data
 vector_handle(a::AbstractSparseCSCAssembler) = a.f
 
 """
-    start_assemble(K::AbstractSparseMatrixCSC;            fillzero::Bool=true) -> CSCAssembler
-    start_assemble(K::AbstractSparseMatrixCSC, f::Vector; fillzero::Bool=true) -> CSCAssembler
+    start_assemble(K::AbstractSparseMatrixCSC;            fillzero::Bool=true, maxcelldofs_hint::Int=0) -> CSCAssembler
+    start_assemble(K::AbstractSparseMatrixCSC, f::Vector; fillzero::Bool=true, maxcelldofs_hint::Int=0) -> CSCAssembler
 
 Create a `CSCAssembler` from the matrix `K` and optional vector `f`.
 
-    start_assemble(K::Symmetric{AbstractSparseMatrixCSC};                 fillzero::Bool=true) -> SymmetricCSCAssembler
-    start_assemble(K::Symmetric{AbstractSparseMatrixCSC}, f::Vector=Td[]; fillzero::Bool=true) -> SymmetricCSCAssembler
+    start_assemble(K::Symmetric{AbstractSparseMatrixCSC};                 fillzero::Bool=true, maxcelldofs_hint::Int=0) -> SymmetricCSCAssembler
+    start_assemble(K::Symmetric{AbstractSparseMatrixCSC}, f::Vector=Td[]; fillzero::Bool=true, maxcelldofs_hint::Int=0) -> SymmetricCSCAssembler
 
 Create a `SymmetricCSCAssembler` from the matrix `K` and optional vector `f`.
 
@@ -172,16 +172,18 @@ necessary for efficient matrix assembly. To assemble the contribution from an el
 
 The keyword argument `fillzero` can be set to `false` if `K` and `f` should not be zeroed
 out, but instead keep their current values.
+The keyword argument `maxcelldofs_hint` can be set to the largest number celldofs over all cells
+to eliminate runtime allocations.
 """
 start_assemble(K::Union{AbstractSparseMatrixCSC, Symmetric{<:Any,<:AbstractSparseMatrixCSC}}, f::Vector; fillzero::Bool)
 
-function start_assemble(K::AbstractSparseMatrixCSC{T}, f::Vector=T[]; fillzero::Bool=true, sizehint=0) where {T}
+function start_assemble(K::AbstractSparseMatrixCSC{T}, f::Vector=T[]; fillzero::Bool=true, maxcelldofs_hint::Int=0) where {T}
     fillzero && (fillzero!(K); fillzero!(f))
-    return CSCAssembler(K, f, zeros(Int,sizehint), zeros(Int,sizehint))
+    return CSCAssembler(K, f, zeros(Int,maxcelldofs_hint), zeros(Int,maxcelldofs_hint))
 end
-function start_assemble(K::Symmetric{T,<:SparseMatrixCSC}, f::Vector=T[]; fillzero::Bool=true, sizehint=0) where T
+function start_assemble(K::Symmetric{T,<:SparseMatrixCSC}, f::Vector=T[]; fillzero::Bool=true, maxcelldofs_hint::Int=0) where T
     fillzero && (fillzero!(K); fillzero!(f))
-    return SymmetricCSCAssembler(K, f, zeros(Int,sizehint), zeros(Int,sizehint))
+    return SymmetricCSCAssembler(K, f, zeros(Int,maxcelldofs_hint), zeros(Int,maxcelldofs_hint))
 end
 
 finish_assemble(a::AbstractSparseCSCAssembler) = get_matrix(a)

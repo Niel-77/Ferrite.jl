@@ -1,11 +1,12 @@
 # Putting this flag to false reproduces the figure shown in the example #src
 # We check for laminar flow development in the CI                       #src
-if @isdefined is_ci    #hide
-    IS_CI = is_ci      #hide
-else                   #hide
-    IS_CI = false      #hide
-end                    #hide
-# # [Reactive Surface](@id tutorial-reactive-surface)
+if isdefined(Main, :is_ci) #hide
+    IS_CI = Main.is_ci     #hide
+else                       #hide
+    IS_CI = false          #hide
+end                        #hide
+nothing                    #hide
+# # [Reactive surface](@id tutorial-reactive-surface)
 #
 # ![](reactive_surface.gif)
 #
@@ -199,7 +200,7 @@ function gray_scott_sphere(F, k, Δt, T, refinements)
     ## Since the heat problem is linear and has no time dependent parameters, we precompute the
     ## decomposition of the system matrix to speed up the linear system solver.
     A = M + Δt .* D
-    Alu = cholesky(A)
+    cholA = cholesky(A)
 
     ## Now we setup buffers for the time dependent solution and fill the initial condition.
     uₜ   = zeros(ndofs(dh))
@@ -215,7 +216,7 @@ function gray_scott_sphere(F, k, Δt, T, refinements)
     ## This is now the main solve loop.
     for (iₜ, t) ∈ enumerate(Δt:Δt:T)
         ## First we solve the heat problem
-        uₜ .= Alu \ (M * uₜ₋₁)
+        uₜ .= cholA \ (M * uₜ₋₁)
 
         ## Then we solve the point-wise reaction problem with the solution of
         ## the heat problem as initial guess.
@@ -243,11 +244,11 @@ function gray_scott_sphere(F, k, Δt, T, refinements)
 end
 
 ## This parametrization gives the spot pattern shown in the gif above.
-if !IS_CI #src
+if !IS_CI                                           #src
 gray_scott_sphere(0.06, 0.062, 10.0, 32000.0, 3)
-else #src
-gray_scott_sphere(0.06, 0.062, 10.0, 20.0, 0) #src
-end #src
+else                                                #src
+gray_scott_sphere(0.06, 0.062, 10.0, 20.0, 0)       #src
+end                                                 #src
 
 #md # ## [Plain program](@id reactive_surface-plain-program)
 #md #

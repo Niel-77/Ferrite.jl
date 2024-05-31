@@ -1,8 +1,9 @@
-if @isdefined is_ci    #hide
-    IS_CI = is_ci      #hide
-else                   #hide
-    IS_CI = false      #hide
-end                    #hide
+if isdefined(Main, :is_ci) #hide
+    IS_CI = Main.is_ci     #hide
+else                       #hide
+    IS_CI = false          #hide
+end                        #hide
+nothing                    #hide
 
 using Ferrite, FerriteGmsh
 using BlockArrays, SparseArrays, LinearAlgebra
@@ -141,7 +142,7 @@ function gray_scott_sphere(F, k, Δt, T, refinements)
     # Since the heat problem is linear and has no time dependent parameters, we precompute the
     # decomposition of the system matrix to speed up the linear system solver.
     A = M + Δt .* D
-    Alu = cholesky(A)
+    cholA = cholesky(A)
 
     # Now we setup buffers for the time dependent solution and fill the initial condition.
     uₜ   = zeros(ndofs(dh))
@@ -157,7 +158,7 @@ function gray_scott_sphere(F, k, Δt, T, refinements)
     # This is now the main solve loop.
     for (iₜ, t) ∈ enumerate(Δt:Δt:T)
         # First we solve the heat problem
-        uₜ .= Alu \ (M * uₜ₋₁)
+        uₜ .= cholA \ (M * uₜ₋₁)
 
         # Then we solve the point-wise reaction problem with the solution of
         # the heat problem as initial guess.

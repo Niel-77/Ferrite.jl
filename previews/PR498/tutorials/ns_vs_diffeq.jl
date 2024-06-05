@@ -1,8 +1,9 @@
-if @isdefined is_ci    #hide
-    IS_CI = false      #hide
-else                   #hide
-    IS_CI = true       #hide
-end                    #hide
+ if isdefined(Main, :is_ci) #hide
+     IS_CI = Main.is_ci     #hide
+ else                       #hide
+     IS_CI = false          #hide
+ end                        #hide
+ nothing                    #hide
 
 using Ferrite, SparseArrays, BlockArrays, LinearAlgebra, UnPack, LinearSolve
 
@@ -44,10 +45,10 @@ end # hide
 gmsh.option.setNumber("Mesh.Algorithm",11)
 gmsh.option.setNumber("Mesh.MeshSizeFromCurvature",20)
 gmsh.option.setNumber("Mesh.MeshSizeMax",0.05)
-if IS_CI                                                                                             #hide
-gmsh.option.setNumber("Mesh.MeshSizeFromCurvature",20)                                               #hide
-gmsh.option.setNumber("Mesh.MeshSizeMax",0.15)                                                       #hide
-end                                                                                                  #hide
+if IS_CI                                                                                            #hide
+gmsh.option.setNumber("Mesh.MeshSizeFromCurvature",20)                                              #hide
+gmsh.option.setNumber("Mesh.MeshSizeMax",0.15)                                                      #hide
+end                                                                                                 #hide
 
 gmsh.model.mesh.generate(dim)
 grid = togrid()
@@ -69,7 +70,7 @@ ch = ConstraintHandler(dh);
 
 nosplip_facet_names = ["top", "bottom", "hole"];
 if IS_CI                                                                #hide
-nosplip_facet_names = ["top", "bottom"]                                  #hide
+nosplip_facet_names = ["top", "bottom"]                                 #hide
 end                                                                     #hide
 ∂Ω_noslip = union(getfacetset.((grid, ), nosplip_facet_names)...);
 noslip_bc = Dirichlet(:v, ∂Ω_noslip, (x, t) -> Vec((0.0,0.0)), [1,2])
@@ -308,56 +309,57 @@ integrator = init(
 
 
 pvd = VTKFileCollection("vortex-street", grid);
-for (u_uc,t) in TimeChoiceIterator(integrator, 0.0:Δt_save:T)
+#for (u_uc,t) in TimeChoiceIterator(integrator, 0.0:Δt_save:T)
 
-    update!(ch, t)
-    u = copy(u_uc)
-    apply!(u, ch)
+#end
+for (u,t) in tuples(integrator)
     addstep!(pvd, t) do io
         write_solution(io, dh, u)
     end
 end
 close(pvd);
 
-using Test                                                                  #hide
-function compute_divergence(dh, u, cellvalues_v)                            #hide
-    divv = 0.0                                                              #hide
-    for cell in CellIterator(dh)                                            #hide
-        Ferrite.reinit!(cellvalues_v, cell)                                 #hide
-        for q_point in 1:getnquadpoints(cellvalues_v)                       #hide
-            dΩ = getdetJdV(cellvalues_v, q_point)                           #hide
-                                                                            #hide
-            all_celldofs = celldofs(cell)                                   #hide
-            v_celldofs = all_celldofs[dof_range(dh, :v)]                    #hide
-            v_cell = u[v_celldofs]                                          #hide
-                                                                            #hide
-            divv += function_divergence(cellvalues_v, q_point, v_cell) * dΩ #hide
-        end                                                                 #hide
-    end                                                                     #hide
-    return divv                                                             #hide
-end                                                                         #hide
-@testset "INS OrdinaryDiffEq" begin                                         #hide
-    u = copy(integrator.u)                                                  #hide
-    apply!(u, ch)                                                           #hide
-    Δdivv = abs(compute_divergence(dh, u, cellvalues_v))                    #hide
-    @test isapprox(Δdivv, 0.0, atol=1e-12)                                  #hide
-                                                                            #hide
-    Δv = 0.0                                                                #hide
-    for cell in CellIterator(dh)                                            #hide
-        Ferrite.reinit!(cellvalues_v, cell)                                 #hide
-        all_celldofs = celldofs(cell)                                       #hide
-        v_celldofs = all_celldofs[dof_range(dh, :v)]                        #hide
-        v_cell = u[v_celldofs]                                              #hide
-        coords = getcoordinates(cell)                                       #hide
-        for q_point in 1:getnquadpoints(cellvalues_v)                       #hide
-            dΩ = getdetJdV(cellvalues_v, q_point)                           #hide
-            coords_qp = spatial_coordinate(cellvalues_v, q_point, coords)   #hide
-            v = function_value(cellvalues_v, q_point, v_cell)               #hide
-            Δv += norm(v - parabolic_inflow_profile(coords_qp, T))^2*dΩ     #hide
-        end                                                                 #hide
-    end                                                                     #hide
-    @test isapprox(sqrt(Δv), 0.0, atol=1e-3)                                #hide
-end;                                                                        #hide
-nothing                                                                     #hide
+using Test                                                                      #hide
+if IS_CI                                                                        #hide
+    function compute_divergence(dh, u, cellvalues_v)                            #hide
+        divv = 0.0                                                              #hide
+        for cell in CellIterator(dh)                                            #hide
+            Ferrite.reinit!(cellvalues_v, cell)                                 #hide
+            for q_point in 1:getnquadpoints(cellvalues_v)                       #hide
+                dΩ = getdetJdV(cellvalues_v, q_point)                           #hide
+                                                                                #hide
+                all_celldofs = celldofs(cell)                                   #hide
+                v_celldofs = all_celldofs[dof_range(dh, :v)]                    #hide
+                v_cell = u[v_celldofs]                                          #hide
+                                                                                #hide
+                divv += function_divergence(cellvalues_v, q_point, v_cell) * dΩ #hide
+            end                                                                 #hide
+        end                                                                     #hide
+        return divv                                                             #hide
+    end                                                                         #hide
+    @testset "INS OrdinaryDiffEq" begin                                         #hide
+        u = copy(integrator.u)                                                  #hide
+        apply!(u, ch)                                                           #hide
+        Δdivv = abs(compute_divergence(dh, u, cellvalues_v))                    #hide
+        @test isapprox(Δdivv, 0.0, atol=1e-12)                                  #hide
+                                                                                #hide
+        Δv = 0.0                                                                #hide
+        for cell in CellIterator(dh)                                            #hide
+            Ferrite.reinit!(cellvalues_v, cell)                                 #hide
+            all_celldofs = celldofs(cell)                                       #hide
+            v_celldofs = all_celldofs[dof_range(dh, :v)]                        #hide
+            v_cell = u[v_celldofs]                                              #hide
+            coords = getcoordinates(cell)                                       #hide
+            for q_point in 1:getnquadpoints(cellvalues_v)                       #hide
+                dΩ = getdetJdV(cellvalues_v, q_point)                           #hide
+                coords_qp = spatial_coordinate(cellvalues_v, q_point, coords)   #hide
+                v = function_value(cellvalues_v, q_point, v_cell)               #hide
+                Δv += norm(v - parabolic_inflow_profile(coords_qp, T))^2*dΩ     #hide
+            end                                                                 #hide
+        end                                                                     #hide
+        @test isapprox(sqrt(Δv), 0.0, atol=1e-3)                                #hide
+    end;                                                                        #hide
+    nothing                                                                     #hide
+end                                                                             #hide
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

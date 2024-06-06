@@ -23,10 +23,10 @@ circle_tag = gmsh.model.occ.add_circle(0.2, 0.2, 0, 0.05)
 circle_curve_tag = gmsh.model.occ.add_curve_loop([circle_tag])
 circle_surf_tag = gmsh.model.occ.add_plane_surface([circle_curve_tag])
 gmsh.model.occ.cut([(dim,rect_tag)],[(dim,circle_surf_tag)]);
-nothing                                                                                             #hide
 else                                                                                                #hide
 rect_tag = gmsh.model.occ.add_rectangle(0, 0, 0, 0.55, 0.41);                                       #hide
 end                                                                                                 #hide
+nothing                                                                                             #hide
 
 gmsh.model.occ.synchronize()
 
@@ -36,13 +36,13 @@ lefttag = gmsh.model.model.add_physical_group(dim-1,[7],-1,"left")
 righttag = gmsh.model.model.add_physical_group(dim-1,[8],-1,"right")
 toptag = gmsh.model.model.add_physical_group(dim-1,[9],-1,"top")
 holetag = gmsh.model.model.add_physical_group(dim-1,[5],-1,"hole");
-nothing                                                                                             #hide
 else                                                                                                #hide
 gmsh.model.model.add_physical_group(dim-1,[4],7,"left")                                             #hide
 gmsh.model.model.add_physical_group(dim-1,[3],8,"top")                                              #hide
 gmsh.model.model.add_physical_group(dim-1,[2],9,"right")                                            #hide
 gmsh.model.model.add_physical_group(dim-1,[1],10,"bottom");                                         #hide
 end # hide
+nothing                                                                                             #hide
 
 gmsh.option.setNumber("Mesh.Algorithm",11)
 gmsh.option.setNumber("Mesh.MeshSizeFromCurvature",20)
@@ -303,20 +303,18 @@ end
 timestepper = Rodas5P(autodiff=false, step_limiter! = ferrite_limiter!);
 
 integrator = init(
-    problem, timestepper, initializealg=NoInit(), dt=Δt₀,
+    problem, timestepper; initializealg=NoInit(), dt=Δt₀,
     adaptive=true, abstol=1e-4, reltol=1e-5,
     progress=true, progress_steps=1,
-    verbose=true, internalnorm=FreeDofErrorNorm(ch)
+    verbose=true, internalnorm=FreeDofErrorNorm(ch),
+    d_discontinuities=[2.0]
 );
 
 
 pvd = VTKFileCollection("vortex-street", grid);
-#for (u_uc,t) in TimeChoiceIterator(integrator, 0.0:Δt_save:T)
-
-#end
-for (u,t) in tuples(integrator)
+for (u_uc,t) in TimeChoiceIterator(integrator, 0.0:Δt_save:T)
     addstep!(pvd, t) do io
-        write_solution(io, dh, u)
+        write_solution(io, dh, u_uc)
     end
 end
 close(pvd);

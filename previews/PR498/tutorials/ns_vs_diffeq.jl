@@ -80,7 +80,7 @@ add!(ch, noslip_bc);
 
 ∂Ω_inflow = getfacetset(grid, "left");
 
-vᵢₙ(t) = t < 2.0 ? 1.5*(sin(-π/2 + t*π/2)+1)/2 : 1.5 #inflow velocity
+vᵢₙ(t) = min(t*1.5, 1.5) #inflow velocity
 
 parabolic_inflow_profile(x,t) = Vec((4*vᵢₙ(t)*x[2]*(0.41-x[2])/0.41^2, 0.0))
 inflow_bc = Dirichlet(:v, ∂Ω_inflow, parabolic_inflow_profile, [1,2])
@@ -306,9 +306,8 @@ integrator = init(
     problem, timestepper; initializealg=NoInit(), dt=Δt₀,
     adaptive=true, abstol=1e-4, reltol=1e-5,
     progress=true, progress_steps=1,
-    verbose=true, internalnorm=FreeDofErrorNorm(ch),
+    verbose=true, internalnorm=FreeDofErrorNorm(ch), d_discontinuities=[1.0]
 );
-
 
 pvd = VTKFileCollection("vortex-street", grid);
 for (u,t) in intervals(integrator)

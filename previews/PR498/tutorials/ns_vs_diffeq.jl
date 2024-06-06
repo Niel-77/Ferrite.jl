@@ -318,6 +318,7 @@ end
 close(pvd);
 
 using Test                                                                      #hide
+
 if IS_CI                                                                        #hide
     function compute_divergence(dh, u, cellvalues_v)                            #hide
         divv = 0.0                                                              #hide
@@ -335,9 +336,8 @@ if IS_CI                                                                        
         end                                                                     #hide
         return divv                                                             #hide
     end                                                                         #hide
-    begin                                                                       #hide
+    let                                                                         #hide
         u = copy(integrator.u)                                                  #hide
-        apply!(u, ch)                                                           #hide
         Δdivv = abs(compute_divergence(dh, u, cellvalues_v))                    #hide
         @test isapprox(Δdivv, 0.0, atol=1e-12)                                  #hide
                                                                                 #hide

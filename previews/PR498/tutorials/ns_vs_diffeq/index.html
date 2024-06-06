@@ -240,23 +240,64 @@ problem = ODEProblem(rhs, u₀, (0.0,T), p);</code></pre><p>All norms must not d
     ch::ConstraintHandler
 end
 (fe_norm::FreeDofErrorNorm)(u::Union{AbstractFloat, Complex}, t) = DiffEqBase.ODE_DEFAULT_NORM(u, t)
-(fe_norm::FreeDofErrorNorm)(u::AbstractArray, t) = DiffEqBase.ODE_DEFAULT_NORM(u[fe_norm.ch.free_dofs], t)</code></pre><p>Now we can put everything together by specifying how to solve the problem. We want to use an adaptive variant of the implicit Euler method. Further we enable the progress bar with the <code>progress</code> and <code>progress_steps</code> arguments. Finally we have to communicate the time step length and initialization algorithm. Since we start with a valid initial state we do not use one of DifferentialEquations.jl initialization algorithms.</p><div class="admonition is-info"><header class="admonition-header">DAE initialization</header><div class="admonition-body"><p>At the time of writing this <a href="https://github.com/SciML/OrdinaryDiffEq.jl/issues/1019">no Hessenberg index 2 initialization is implemented</a>.</p></div></div><p>To visualize the result we export the grid and our fields to VTK-files, which can be viewed in <a href="https://www.paraview.org/">ParaView</a> by utilizing the corresponding pvd file.</p><pre><code class="language-julia hljs">timestepper = Rodas5P(autodiff=false, step_limiter! = ferrite_limiter!);</code></pre><p>timestepper = ImplicitEuler(nlsolve=NonlinearSolveAlg(OrdinaryDiffEq.NonlinearSolve.NewtonRaphson(autodiff=OrdinaryDiffEq.AutoFiniteDiff()); max<em>iter=50), step</em>limiter! = ferrite_limiter!)</p><div class="admonition is-info"><header class="admonition-header">Debugging convergence issues</header><div class="admonition-body"><p>We can obtain some debug information from OrdinaryDiffEq by wrapping the following section into a <a href="https://docs.julialang.org/en/v1/stdlib/Logging/#Example:-Enable-debug-level-messages">debug logger</a>.</p></div></div><pre><code class="language-julia hljs">integrator = init(
+(fe_norm::FreeDofErrorNorm)(u::AbstractArray, t) = DiffEqBase.ODE_DEFAULT_NORM(u[fe_norm.ch.free_dofs], t)</code></pre><p>Now we can put everything together by specifying how to solve the problem. We want to use an adaptive variant of the implicit Euler method. Further we enable the progress bar with the <code>progress</code> and <code>progress_steps</code> arguments. Finally we have to communicate the time step length and initialization algorithm. Since we start with a valid initial state we do not use one of DifferentialEquations.jl initialization algorithms.</p><div class="admonition is-info"><header class="admonition-header">DAE initialization</header><div class="admonition-body"><p>At the time of writing this <a href="https://github.com/SciML/OrdinaryDiffEq.jl/issues/1019">no Hessenberg index 2 initialization is implemented</a>.</p></div></div><p>To visualize the result we export the grid and our fields to VTK-files, which can be viewed in <a href="https://www.paraview.org/">ParaView</a> by utilizing the corresponding pvd file.</p><pre><code class="language-julia hljs">timestepper = Rodas5P(autodiff=false, step_limiter! = ferrite_limiter!);</code></pre><div class="admonition is-info"><header class="admonition-header">Debugging convergence issues</header><div class="admonition-body"><p>We can obtain some debug information from OrdinaryDiffEq by wrapping the following section into a <a href="https://docs.julialang.org/en/v1/stdlib/Logging/#Example:-Enable-debug-level-messages">debug logger</a>.</p></div></div><pre><code class="language- hljs">integrator = init(
     problem, timestepper; initializealg=NoInit(), dt=Δt₀,
     adaptive=true, abstol=1e-4, reltol=1e-5,
     progress=true, progress_steps=1,
     verbose=true, internalnorm=FreeDofErrorNorm(ch),
-    d_discontinuities=[2.0]
 );
 
 
 pvd = VTKFileCollection(&quot;vortex-street&quot;, grid);
-for (u_uc,t) in TimeChoiceIterator(integrator, 0.0:Δt_save:T)
+for (u,t) in intervals(integrator)
     addstep!(pvd, t) do io
-        write_solution(io, dh, u_uc)
+        write_solution(io, dh, u)
     end
 end
-close(pvd);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr1">Test Summary:      | <span class="sgr32">Pass  </span><span class="sgr36">Total  </span>Time</span>
-INS OrdinaryDiffEq | <span class="sgr32">   2  </span><span class="sgr36">    2  </span>0.1s</code></pre><h2 id="ns_vs_diffeq-plain-program"><a class="docs-heading-anchor" href="#ns_vs_diffeq-plain-program">Plain program</a><a id="ns_vs_diffeq-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#ns_vs_diffeq-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../ns_vs_diffeq.jl"><code>ns_vs_diffeq.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, SparseArrays, BlockArrays, LinearAlgebra, UnPack, LinearSolve
+close(pvd);
+
+using Test                                                                      #hide
+if IS_CI                                                                        #hide
+    function compute_divergence(dh, u, cellvalues_v)                            #hide
+        divv = 0.0                                                              #hide
+        for cell in CellIterator(dh)                                            #hide
+            Ferrite.reinit!(cellvalues_v, cell)                                 #hide
+            for q_point in 1:getnquadpoints(cellvalues_v)                       #hide
+                dΩ = getdetJdV(cellvalues_v, q_point)                           #hide
+                                                                                #hide
+                all_celldofs = celldofs(cell)                                   #hide
+                v_celldofs = all_celldofs[dof_range(dh, :v)]                    #hide
+                v_cell = u[v_celldofs]                                          #hide
+                                                                                #hide
+                divv += function_divergence(cellvalues_v, q_point, v_cell) * dΩ #hide
+            end                                                                 #hide
+        end                                                                     #hide
+        return divv                                                             #hide
+    end                                                                         #hide
+    begin                                                                       #hide
+        u = copy(integrator.u)                                                  #hide
+        apply!(u, ch)                                                           #hide
+        Δdivv = abs(compute_divergence(dh, u, cellvalues_v))                    #hide
+        @test isapprox(Δdivv, 0.0, atol=1e-12)                                  #hide
+                                                                                #hide
+        Δv = 0.0                                                                #hide
+        for cell in CellIterator(dh)                                            #hide
+            Ferrite.reinit!(cellvalues_v, cell)                                 #hide
+            all_celldofs = celldofs(cell)                                       #hide
+            v_celldofs = all_celldofs[dof_range(dh, :v)]                        #hide
+            v_cell = u[v_celldofs]                                              #hide
+            coords = getcoordinates(cell)                                       #hide
+            for q_point in 1:getnquadpoints(cellvalues_v)                       #hide
+                dΩ = getdetJdV(cellvalues_v, q_point)                           #hide
+                coords_qp = spatial_coordinate(cellvalues_v, q_point, coords)   #hide
+                v = function_value(cellvalues_v, q_point, v_cell)               #hide
+                Δv += norm(v - parabolic_inflow_profile(coords_qp, T))^2*dΩ     #hide
+            end                                                                 #hide
+        end                                                                     #hide
+        @test isapprox(sqrt(Δv), 0.0, atol=1e-3)                                #hide
+    end;                                                                        #hide
+    nothing                                                                     #hide
+end                                                                             #hide</code></pre><h2 id="ns_vs_diffeq-plain-program"><a class="docs-heading-anchor" href="#ns_vs_diffeq-plain-program">Plain program</a><a id="ns_vs_diffeq-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#ns_vs_diffeq-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../ns_vs_diffeq.jl"><code>ns_vs_diffeq.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, SparseArrays, BlockArrays, LinearAlgebra, UnPack, LinearSolve
 
 using OrdinaryDiffEq
 
@@ -536,14 +577,13 @@ integrator = init(
     adaptive=true, abstol=1e-4, reltol=1e-5,
     progress=true, progress_steps=1,
     verbose=true, internalnorm=FreeDofErrorNorm(ch),
-    d_discontinuities=[2.0]
 );
 
 
 pvd = VTKFileCollection(&quot;vortex-street&quot;, grid);
-for (u_uc,t) in TimeChoiceIterator(integrator, 0.0:Δt_save:T)
+for (u,t) in intervals(integrator)
     addstep!(pvd, t) do io
-        write_solution(io, dh, u_uc)
+        write_solution(io, dh, u)
     end
 end
-close(pvd);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../porous_media/">« Porous media</a><a class="docs-footer-nextpage" href="../reactive_surface/">Reactive surface »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Thursday 6 June 2024 09:05">Thursday 6 June 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+close(pvd);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../porous_media/">« Porous media</a><a class="docs-footer-nextpage" href="../reactive_surface/">Reactive surface »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Thursday 6 June 2024 09:37">Thursday 6 June 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

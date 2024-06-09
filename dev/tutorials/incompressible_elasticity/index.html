@@ -37,7 +37,7 @@ end;</code></pre><p>We also need to add Dirichlet boundary conditions on the <co
 end;</code></pre><p>The material is linear elastic, which is here specified by the shear and bulk moduli</p><pre><code class="language-julia hljs">struct LinearElasticity{T}
     G::T
     K::T
-end</code></pre><p>Now to the assembling of the stiffness matrix. This mixed formulation leads to a blocked element matrix. Since Ferrite does not force us to use any particular matrix type we will use a <code>PseudoBlockArray</code> from <code>BlockArrays.jl</code>.</p><pre><code class="language-julia hljs">function doassemble(
+end</code></pre><p>Now to the assembling of the stiffness matrix. This mixed formulation leads to a blocked element matrix. Since Ferrite does not force us to use any particular matrix type we will use a <code>BlockedArray</code> from <code>BlockArrays.jl</code>.</p><pre><code class="language-julia hljs">function doassemble(
     cellvalues_u::CellValues,
     cellvalues_p::CellValues,
     facetvalues_u::FacetValues,
@@ -48,8 +48,8 @@ end</code></pre><p>Now to the assembling of the stiffness matrix. This mixed for
     nu = getnbasefunctions(cellvalues_u)
     np = getnbasefunctions(cellvalues_p)
 
-    fe = PseudoBlockArray(zeros(nu + np), [nu, np]) # local force vector
-    ke = PseudoBlockArray(zeros(nu + np, nu + np), [nu, np], [nu, np]) # local stiffness matrix
+    fe = BlockedArray(zeros(nu + np), [nu, np]) # local force vector
+    ke = BlockedArray(zeros(nu + np, nu + np), [nu, np], [nu, np]) # local stiffness matrix
 
     # traction vector
     t = Vec{2}((0.0, 1 / 16))
@@ -265,8 +265,8 @@ function doassemble(
     nu = getnbasefunctions(cellvalues_u)
     np = getnbasefunctions(cellvalues_p)
 
-    fe = PseudoBlockArray(zeros(nu + np), [nu, np]) # local force vector
-    ke = PseudoBlockArray(zeros(nu + np, nu + np), [nu, np], [nu, np]) # local stiffness matrix
+    fe = BlockedArray(zeros(nu + np), [nu, np]) # local force vector
+    ke = BlockedArray(zeros(nu + np, nu + np), [nu, np], [nu, np]) # local stiffness matrix
 
     # traction vector
     t = Vec{2}((0.0, 1 / 16))
@@ -429,4 +429,4 @@ linear_u    = Lagrange{RefTriangle,1}()^2
 quadratic_u = Lagrange{RefTriangle,2}()^2
 
 u1 = solve(0.5, linear_u,    linear_p);
-u2 = solve(0.5, quadratic_u, linear_p);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../linear_elasticity/">« Linear elasticity</a><a class="docs-footer-nextpage" href="../hyperelasticity/">Hyperelasticity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Friday 7 June 2024 16:50">Friday 7 June 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+u2 = solve(0.5, quadratic_u, linear_p);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../linear_elasticity/">« Linear elasticity</a><a class="docs-footer-nextpage" href="../hyperelasticity/">Hyperelasticity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Sunday 9 June 2024 10:40">Sunday 9 June 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

@@ -1,18 +1,5 @@
 using Ferrite, FerriteGmsh, Gmsh, Tensors, LinearAlgebra, SparseArrays
 
-function FerriteGmsh.tofacesets(boundarydict::Dict{String,Vector}, elements::Vector{Triangle})
-    faces = Ferrite.facets.(elements)
-    facesets = Dict{String,Set{FaceIndex}}()
-    for (boundaryname, boundaryfaces) in boundarydict
-        facesettuple = Set{FaceIndex}()
-        for boundaryface in boundaryfaces
-            FerriteGmsh._add_to_facesettuple!(facesettuple, boundaryface, faces)
-        end
-        facesets[boundaryname] = facesettuple
-    end
-    return facesets
-end
-
 function setup_grid(h=0.05)
     # Initialize gmsh
     Gmsh.initialize()

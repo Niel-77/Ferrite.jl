@@ -60,13 +60,13 @@ function MaterialParameters(E, ν, χ_min, p, β, η)
     return MaterialParameters(C, χ_min, p, β, η)
 end
 
-mutable struct MaterialState{T, S <: AbstractArray{SymmetricTensor{2, 2, T}, 1}}
+mutable struct MaterialState{T, S <: AbstractArray{SymmetricTensor{2, 2, T, 3}, 1}}
     χ::T # density
     ε::S # strain in each quadrature point
 end
 
 function MaterialState(ρ, n_qp)
-    return MaterialState(ρ, Array{SymmetricTensor{2,2,Float64},1}(undef, n_qp))
+    return MaterialState(ρ, Array{SymmetricTensor{2,2,Float64,3},1}(undef, n_qp))
 end
 
 function update_material_states!(χn1, states, dh)
@@ -94,13 +94,13 @@ function compute_densities(states, dh)
     return χn
 end
 
-function approximate_laplacian(dh, topology, χn, Δh)
-    ∇²χ = zeros(getncells(dh.grid))
+function cache_neighborhood(dh, topology)
+    nbgs = Vector{Vector{Int}}(undef, getncells(dh.grid))
     _nfacets = nfacets(dh.grid.cells[1])
     opp = Dict(1=>3, 2=>4, 3=>1, 4=>2)
-    nbg = zeros(Int,_nfacets)
 
     for element in CellIterator(dh)
+        nbg = zeros(Int,_nfacets)
         i = cellid(element)
         for j in 1:_nfacets
             nbg_cellid = getcells(getneighborhood(topology, dh.grid, FacetIndex(i,j)))
@@ -111,6 +111,16 @@ function approximate_laplacian(dh, topology, χn, Δh)
             end
         end
 
+        nbgs[i] = nbg
+    end
+
+    return nbgs
+end
+
+function approximate_laplacian(nbgs, χn, Δh)
+    ∇²χ = zeros(length(nbgs))
+    for i in 1:length(nbgs)
+        nbg = nbgs[i]
         ∇²χ[i] = (χn[nbg[1]]+χn[nbg[2]]+χn[nbg[3]]+χn[nbg[4]]-4*χn[i])/(Δh^2)
     end
 
@@ -130,7 +140,7 @@ function compute_χn1(χn, Δχ, ρ, ηs, χ_min)
     while(abs(ρ-ρ_trial)>1e-7)
         for i in 1:n_el
             Δχt = 1/ηs * (Δχ[i] - λ_trial)
-            χ_trial[i] = maximum([χ_min, minimum([1.0, χn[i]+Δχt])])
+            χ_trial[i] = max(χ_min, min(1.0, χn[i]+Δχt))
         end
 
         ρ_trial = 0.0
@@ -162,13 +172,13 @@ function compute_average_driving_force(mp, pΨ, χn)
     return p_Ω
 end
 
-function update_density(dh, states, mp, ρ, topology, Δh)
+function update_density(dh, states, mp, ρ,  neighboorhoods, Δh)
     n_j = Int(ceil(6*mp.β/(mp.η*Δh^2))) # iterations needed for stability
     χn = compute_densities(states, dh) # old density field
     χn1 = zeros(length(χn))
 
     for j in 1:n_j
-        ∇²χ = approximate_laplacian(dh, topology, χn, Δh) # Laplacian
+        ∇²χ = approximate_laplacian(neighboorhoods, χn, Δh) # Laplacian
         pΨ = compute_driving_forces(states, mp, dh, χn) # driving forces
         p_Ω = compute_average_driving_force(mp, pΨ, χn) # average driving force
 
@@ -218,7 +228,6 @@ function elmt!(Ke, re, element, cellvalues, facetvalues, grid, mp, ue, state)
 
         for i in 1:n_basefuncs
             δεi = shape_symmetric_gradient(cellvalues, q_point, i)
-            δu = shape_value(cellvalues, q_point, i)
             for j in 1:i
                 δεj = shape_symmetric_gradient(cellvalues, q_point, j)
                 Ke[i,j] += (χ)^(mp.p) * (δεi ⊡ mp.C ⊡ δεj) * dΩ
@@ -290,6 +299,7 @@ function topopt(ra,ρ,n,filename; output=:false)
     conv = :false
 
     topology = ExclusiveTopology(grid)
+    neighboorhoods = cache_neighborhood(dh, topology)
 
     # Newton-Raphson loop
     NEWTON_TOL = 1e-8
@@ -342,7 +352,7 @@ function topopt(ra,ρ,n,filename; output=:false)
         end
 
         # update density
-        χ = update_density(dh, states, mp, ρ, topology, Δh)
+        χ = update_density(dh, states, mp, ρ, neighboorhoods, Δh)
 
         # update old displacement, density and compliance
         un .= u
@@ -372,8 +382,7 @@ function topopt(ra,ρ,n,filename; output=:false)
     return
 end
 
-topopt(0.02, 0.5, 60, "small_radius"; output=:false);
-topopt(0.03, 0.5, 60, "large_radius"; output=:false);
-##topopt(0.02, 0.5, 60, "topopt_animation"; output=:true); # can be used to create animations
+@time topopt(0.03, 0.5, 60, "large_radius"; output=:false);
+#topopt(0.02, 0.5, 60, "topopt_animation"; output=:true); # can be used to create animations
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

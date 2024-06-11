@@ -41,7 +41,7 @@ gmsh.model.model.add_physical_group(dim-1,[4],7,"left")                         
 gmsh.model.model.add_physical_group(dim-1,[3],8,"top")                                              #hide
 gmsh.model.model.add_physical_group(dim-1,[2],9,"right")                                            #hide
 gmsh.model.model.add_physical_group(dim-1,[1],10,"bottom");                                         #hide
-end # hide
+end #hide
 nothing                                                                                             #hide
 
 gmsh.option.setNumber("Mesh.Algorithm",11)

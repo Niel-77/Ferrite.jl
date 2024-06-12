@@ -381,7 +381,7 @@ function solve()
     newton_itr = -1
     NEWTON_TOL = 1e-8
     NEWTON_MAXITER = 30
-    prog = ProgressMeter.ProgressThresh(NEWTON_TOL, "Solving:")
+    prog = ProgressMeter.ProgressThresh(NEWTON_TOL; desc = "Solving:")
 
     while true; newton_itr += 1
         ## Construct the current guess

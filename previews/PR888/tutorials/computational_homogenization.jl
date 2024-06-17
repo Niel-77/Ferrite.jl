@@ -38,8 +38,8 @@ update!(ch_periodic, 0.0)
 ch = (dirichlet = ch_dirichlet, periodic = ch_periodic);
 
 K = (
-    dirichlet = create_matrix(dh),
-    periodic  = create_matrix(dh, ch.periodic),
+    dirichlet = allocate_matrix(dh),
+    periodic  = allocate_matrix(dh, ch.periodic),
 );
 
 λ, μ = 1e10, 7e9 # Lamé parameters

@@ -159,7 +159,7 @@ function solve()
     apply!(un, dbcs)
 
     # Create sparse matrix and residual vector
-    K = create_matrix(dh)
+    K = allocate_matrix(dh)
     g = zeros(_ndofs)
 
     # Perform Newton iterations

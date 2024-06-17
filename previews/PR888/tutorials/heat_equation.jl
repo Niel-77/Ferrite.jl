@@ -10,7 +10,7 @@ dh = DofHandler(grid)
 add!(dh, :u, ip)
 close!(dh);
 
-K = create_matrix(dh)
+K = allocate_matrix(dh)
 
 ch = ConstraintHandler(dh);
 

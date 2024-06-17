@@ -174,10 +174,10 @@ if IS_CI                                                                #hide
 end                                                                     #hide
 Δt_save = 0.1
 
-M = create_matrix(dh);
+M = allocate_matrix(dh);
 M = assemble_mass_matrix(cellvalues_v, cellvalues_p, M, dh);
 
-K = create_matrix(dh);
+K = allocate_matrix(dh);
 K = assemble_stokes_matrix(cellvalues_v, cellvalues_p, ν, K, dh);
 
 u₀ = zeros(ndofs(dh))

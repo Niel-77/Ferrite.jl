@@ -10,8 +10,8 @@ dh = DofHandler(grid)
 add!(dh, :u, ip)
 close!(dh);
 
-K = create_matrix(dh);
-M = create_matrix(dh);
+K = allocate_matrix(dh);
+M = allocate_matrix(dh);
 
 f = zeros(ndofs(dh));
 

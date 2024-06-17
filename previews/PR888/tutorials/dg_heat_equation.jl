@@ -20,7 +20,7 @@ dh = DofHandler(grid)
 add!(dh, :u, ip)
 close!(dh);
 
-K = create_matrix(dh, topology = topology, cross_coupling = trues(1,1));
+K = allocate_matrix(dh, topology = topology, cross_coupling = trues(1,1));
 
 ch = ConstraintHandler(dh)
 add!(ch, Dirichlet(:u, getfacetset(grid, "right"), (x, t) -> 1.0))

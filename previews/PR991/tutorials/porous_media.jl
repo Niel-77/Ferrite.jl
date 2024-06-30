@@ -203,7 +203,7 @@ function setup_problem(;t_rise=0.1, u_max=-0.1)
 end;
 
 function solve(dh, ch, domains; Δt=0.025, t_total=1.0)
-    K = create_sparsity_pattern(dh);
+    K = allocate_matrix(dh)
     r = zeros(ndofs(dh))
     a = zeros(ndofs(dh))
     a_old = copy(a)

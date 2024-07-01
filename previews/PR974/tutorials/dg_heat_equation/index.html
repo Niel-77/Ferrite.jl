@@ -60,13 +60,13 @@ function assemble_interface!(Ki::Matrix, iv::InterfaceValues, μ::Float64)
         dΓ = getdetJdV(iv, q_point)
         # Loop over test shape functions
         for i in 1:getnbasefunctions(iv)
-            # Multiply the jump by the normal, as the definition used in Ferrite doesn&#39;t include the normals.
-            δu_jump = shape_value_jump(iv, q_point, i) * normal
+            # Multiply the jump by the negative normal to get the definition from the theory section.
+            δu_jump = shape_value_jump(iv, q_point, i) * (-normal)
             ∇δu_avg = shape_gradient_average(iv, q_point, i)
             # Loop over trial shape functions
             for j in 1:getnbasefunctions(iv)
-                # Multiply the jump by the normal, as the definition used in Ferrite doesn&#39;t include the normals.
-                u_jump = shape_value_jump(iv, q_point, j) * normal
+                # Multiply the jump by the negative normal to get the definition from the theory section.
+                u_jump = shape_value_jump(iv, q_point, j) * (-normal)
                 ∇u_avg = shape_gradient_average(iv, q_point, j)
                 # Add contribution to Ki
                 Ki[i, j] += -(δu_jump ⋅ ∇u_avg + ∇δu_avg ⋅ u_jump)*dΓ +  μ * (δu_jump ⋅ u_jump) * dΓ
@@ -212,13 +212,13 @@ function assemble_interface!(Ki::Matrix, iv::InterfaceValues, μ::Float64)
         dΓ = getdetJdV(iv, q_point)
         # Loop over test shape functions
         for i in 1:getnbasefunctions(iv)
-            # Multiply the jump by the normal, as the definition used in Ferrite doesn&#39;t include the normals.
-            δu_jump = shape_value_jump(iv, q_point, i) * normal
+            # Multiply the jump by the negative normal to get the definition from the theory section.
+            δu_jump = shape_value_jump(iv, q_point, i) * (-normal)
             ∇δu_avg = shape_gradient_average(iv, q_point, i)
             # Loop over trial shape functions
             for j in 1:getnbasefunctions(iv)
-                # Multiply the jump by the normal, as the definition used in Ferrite doesn&#39;t include the normals.
-                u_jump = shape_value_jump(iv, q_point, j) * normal
+                # Multiply the jump by the negative normal to get the definition from the theory section.
+                u_jump = shape_value_jump(iv, q_point, j) * (-normal)
                 ∇u_avg = shape_gradient_average(iv, q_point, j)
                 # Add contribution to Ki
                 Ki[i, j] += -(δu_jump ⋅ ∇u_avg + ∇δu_avg ⋅ u_jump)*dΓ +  μ * (δu_jump ⋅ u_jump) * dΓ
@@ -297,4 +297,4 @@ apply!(K, f, ch)
 u = K \ f;
 VTKFile(&quot;dg_heat_equation&quot;, dh) do vtk
     write_solution(vtk, dh, u)
-end;</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../linear_shell/">« Linear shell</a><a class="docs-footer-nextpage" href="../../topics/">Topic guide overview »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Friday 28 June 2024 12:05">Friday 28 June 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end;</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../linear_shell/">« Linear shell</a><a class="docs-footer-nextpage" href="../../topics/">Topic guide overview »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Monday 1 July 2024 11:55">Monday 1 July 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

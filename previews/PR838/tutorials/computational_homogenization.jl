@@ -1,6 +1,7 @@
 using Ferrite, SparseArrays, LinearAlgebra
 
 using FerriteGmsh
+
 # grid = togrid("periodic-rve-coarse.msh")
 grid = togrid("periodic-rve.msh")
 
@@ -16,7 +17,7 @@ close!(dh);
 ch_dirichlet = ConstraintHandler(dh)
 dirichlet = Dirichlet(
     :u,
-    union(getfaceset.(Ref(grid), ["left", "right", "top", "bottom"])...),
+    union(getfacetset.(Ref(grid), ["left", "right", "top", "bottom"])...),
     (x, t) ->  [0, 0],
     [1, 2]
 )
@@ -37,8 +38,8 @@ update!(ch_periodic, 0.0)
 ch = (dirichlet = ch_dirichlet, periodic = ch_periodic);
 
 K = (
-    dirichlet = create_sparsity_pattern(dh),
-    periodic  = create_sparsity_pattern(dh, ch.periodic),
+    dirichlet = allocate_matrix(dh),
+    periodic  = allocate_matrix(dh, ch.periodic),
 );
 
 λ, μ = 1e10, 7e9 # Lamé parameters
@@ -218,16 +219,16 @@ round.(ev; digits=-8)
 
 uM = zeros(ndofs(dh))
 
-vtk_grid("homogenization", dh) do vtk
+VTKFile("homogenization", dh) do vtk
     for i in 1:3
         # Compute macroscopic solution
         apply_analytical!(uM, dh, :u, x -> εᴹ[i] ⋅ x)
         # Dirichlet
-        vtk_point_data(vtk, dh, uM + u.dirichlet[i], "_dirichlet_$i")
-        vtk_point_data(vtk, projector, σ.dirichlet[i], "σvM_dirichlet_$i")
+        write_solution(vtk, dh, uM + u.dirichlet[i], "_dirichlet_$i")
+        write_projection(vtk, projector, σ.dirichlet[i], "σvM_dirichlet_$i")
         # Periodic
-        vtk_point_data(vtk, dh, uM + u.periodic[i], "_periodic_$i")
-        vtk_point_data(vtk, projector, σ.periodic[i], "σvM_periodic_$i")
+        write_solution(vtk, dh, uM + u.periodic[i], "_periodic_$i")
+        write_projection(vtk, projector, σ.periodic[i], "σvM_periodic_$i")
     end
 end;
 

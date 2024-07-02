@@ -43,6 +43,7 @@ get_coordinate_eltype(::Node{dim,T}) where {dim,T} = T
 # abstract type AbstractCell{refshape <: AbstractRefShape} end
 
 getrefshape(::AbstractCell{refshape}) where refshape = refshape
+getrefshape(::Type{<:AbstractCell{refshape}}) where refshape = refshape
 
 nvertices(c::AbstractCell) = length(vertices(c))
 nedges(   c::AbstractCell) = length(edges(c))
@@ -333,7 +334,7 @@ function Grid(cells::Vector{C},
         end
     end
     if boundary_matrix !== nothing
-        error("`boundary_matrix` is not part of the Grid anymore and thus not a supported keyword argument.")
+        throw(DeprecationError("`boundary_matrix` is not part of the Grid anymore and thus not a supported keyword argument."))
     end
     return Grid(
         cells,

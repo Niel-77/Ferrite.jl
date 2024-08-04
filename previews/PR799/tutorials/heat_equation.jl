@@ -10,15 +10,15 @@ dh = DofHandler(grid)
 add!(dh, :u, ip)
 close!(dh);
 
-K = create_sparsity_pattern(dh)
+K = allocate_matrix(dh)
 
 ch = ConstraintHandler(dh);
 
 ∂Ω = union(
-    getfaceset(grid, "left"),
-    getfaceset(grid, "right"),
-    getfaceset(grid, "top"),
-    getfaceset(grid, "bottom"),
+    getfacetset(grid, "left"),
+    getfacetset(grid, "right"),
+    getfacetset(grid, "top"),
+    getfacetset(grid, "bottom"),
 );
 
 dbc = Dirichlet(:u, ∂Ω, (x, t) -> 0)
@@ -78,8 +78,8 @@ K, f = assemble_global(cellvalues, K, dh);
 apply!(K, f, ch)
 u = K \ f;
 
-vtk_grid("heat_equation", dh) do vtk
-    vtk_point_data(vtk, dh, u)
+VTKFile("heat_equation", dh) do vtk
+    write_solution(vtk, dh, u)
 end
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

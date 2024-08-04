@@ -84,7 +84,7 @@ function LandauModel(α, G, gridsize, left::Vec{DIM, T}, right::Vec{DIM, T}, elp
 end
 
 function save_landau(path, model, dofs=model.dofs)
-    VTKFile(path, model.dofhandler) do vtk
+    VTKGridFile(path, model.dofhandler) do vtk
         write_solution(vtk, model.dofhandler, dofs)
     end
 end

@@ -78,7 +78,7 @@ K, f = assemble_global(cellvalues, K, dh);
 apply!(K, f, ch)
 u = K \ f;
 
-VTKFile("heat_equation", dh) do vtk
+VTKGridFile("heat_equation", dh) do vtk
     write_solution(vtk, dh, u)
 end
 

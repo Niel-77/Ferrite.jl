@@ -47,31 +47,7 @@ holetag = gmsh.model.model.add_physical_group(dim-1,[5],-1,&quot;hole&quot;);</c
 gmsh.option.setNumber(&quot;Mesh.MeshSizeFromCurvature&quot;,20)
 gmsh.option.setNumber(&quot;Mesh.MeshSizeMax&quot;,0.05)</code></pre><p>In the next step, the mesh is generated and finally translated.</p><pre><code class="language-julia hljs">gmsh.model.mesh.generate(dim)
 grid = togrid()
-Gmsh.finalize();</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : SurfaceProjector initialize: failed to build STL triangulation
-Warning : ------------------------------
-Warning : Mesh generation error summary
-Warning :    19 warnings
-Warning :     0 errors
-Warning : Check the full log for details
-Warning : ------------------------------</code></pre><h3 id="Function-Space"><a class="docs-heading-anchor" href="#Function-Space">Function Space</a><a id="Function-Space-1"></a><a class="docs-heading-anchor-permalink" href="#Function-Space" title="Permalink"></a></h3><p>To ensure stability we utilize the Taylor-Hood element pair Q2-Q1.  We have to utilize the same quadrature rule for the pressure as for the velocity, because in the weak form the  linear pressure term is tested against a quadratic function.</p><pre><code class="language-julia hljs">ip_v = Lagrange{RefQuadrilateral, 2}()^dim
+Gmsh.finalize();</code></pre><h3 id="Function-Space"><a class="docs-heading-anchor" href="#Function-Space">Function Space</a><a id="Function-Space-1"></a><a class="docs-heading-anchor-permalink" href="#Function-Space" title="Permalink"></a></h3><p>To ensure stability we utilize the Taylor-Hood element pair Q2-Q1.  We have to utilize the same quadrature rule for the pressure as for the velocity, because in the weak form the  linear pressure term is tested against a quadratic function.</p><pre><code class="language-julia hljs">ip_v = Lagrange{RefQuadrilateral, 2}()^dim
 qr = QuadratureRule{RefQuadrilateral}(4)
 cellvalues_v = CellValues(qr, ip_v);
 
@@ -275,8 +251,7 @@ for (u,t) in intervals(integrator)
         write_solution(io, dh, u)
     end
 end
-close(pvd);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr33"><span class="sgr1">┌ Warning: </span></span>At t=0.507057801206954, dt was forced below floating point epsilon 1.1102230246251565e-16, and step error estimate = 1.7959683372812822. Aborting. There is either an error in your model specification or the true solution is unstable (or the true solution can not be represented in the precision of Float64).
-<span class="sgr33"><span class="sgr1">└ </span></span><span class="sgr90">@ SciMLBase ~/.julia/packages/SciMLBase/sakPO/src/integrator_interface.jl:633</span></code></pre><h2 id="ns_vs_diffeq-plain-program"><a class="docs-heading-anchor" href="#ns_vs_diffeq-plain-program">Plain program</a><a id="ns_vs_diffeq-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#ns_vs_diffeq-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../ns_vs_diffeq.jl"><code>ns_vs_diffeq.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, SparseArrays, BlockArrays, LinearAlgebra, UnPack, LinearSolve
+close(pvd);</code></pre><h2 id="ns_vs_diffeq-plain-program"><a class="docs-heading-anchor" href="#ns_vs_diffeq-plain-program">Plain program</a><a id="ns_vs_diffeq-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#ns_vs_diffeq-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../ns_vs_diffeq.jl"><code>ns_vs_diffeq.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, SparseArrays, BlockArrays, LinearAlgebra, UnPack, LinearSolve
 
 using OrdinaryDiffEq
 
@@ -563,4 +538,4 @@ for (u,t) in intervals(integrator)
         write_solution(io, dh, u)
     end
 end
-close(pvd);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../porous_media/">« Porous media</a><a class="docs-footer-nextpage" href="../reactive_surface/">Reactive surface »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Sunday 4 August 2024 14:46">Sunday 4 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+close(pvd);</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../porous_media/">« Porous media</a><a class="docs-footer-nextpage" href="../reactive_surface/">Reactive surface »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Monday 5 August 2024 16:09">Monday 5 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

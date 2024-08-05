@@ -8,6 +8,7 @@ isfile(logo_mesh) || download(string(asset_url, logo_mesh), logo_mesh)
 FerriteGmsh.Gmsh.initialize() # hide
 FerriteGmsh.Gmsh.gmsh.option.set_number("General.Verbosity", 2) #hide
 grid = togrid(logo_mesh);
+FerriteGmsh.Gmsh.finalize();
 
 addfacetset!(grid, "top",    x -> x[2] ≈ 1.0) # faces for which x[2] ≈ 1.0 for all nodes
 addfacetset!(grid, "left",   x -> abs(x[1]) < 1e-6)
@@ -114,7 +115,7 @@ for (key, color) in colors
     end
 end
 
-VTKFile("linear_elasticity", dh) do vtk
+VTKGridFile("linear_elasticity", dh) do vtk
     write_solution(vtk, dh, u)
     write_cell_data(vtk, color_data, "colors")
 end

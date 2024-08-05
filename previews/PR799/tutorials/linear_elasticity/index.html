@@ -3,7 +3,7 @@
  \boldsymbol{\sigma} \cdot \boldsymbol{\nabla} + \boldsymbol{b} &amp;= 0 \quad \boldsymbol{x} \in \Omega \\
  \boldsymbol{u} &amp;= \boldsymbol{u}_\mathrm{D} \quad \boldsymbol{x} \in \Gamma_\mathrm{D} \\
  \boldsymbol{n} \cdot \boldsymbol{\sigma} &amp;= \boldsymbol{t}_\mathrm{N} \quad \boldsymbol{x} \in \Gamma_\mathrm{N} \\
-\end{align*}\]</p><p>where <span>$\boldsymbol{\sigma}$</span> is the (Cauchy) stress tensor and <span>$\boldsymbol{b}$</span> the body force. The domain, <span>$\Omega$</span>, has the boundary <span>$\Gamma$</span>, consisting of a Dirichlet part, <span>$\Gamma_\mathrm{D}$</span>, and a Neumann part, <span>$\Gamma_\mathrm{N}$</span>.</p><p>In this example, we use linear elasticity, such that</p><p class="math-container">\[\boldsymbol{\sigma} = \boldsymbol{\mathsf{E}} : \boldsymbol{\varepsilon}\]</p><p>where <span>$\boldsymbol{\mathsf{E}}$</span> is the elastic stiffness tensor and <span>$\boldsymbol{\varepsilon}$</span> is the small strain tensor,</p><p class="math-container">\[\boldsymbol{\varepsilon} = \frac{1}{2} \left(
+\end{align*}\]</p><p>where <span>$\boldsymbol{\sigma}$</span> is the (Cauchy) stress tensor and <span>$\boldsymbol{b}$</span> the body force. The domain, <span>$\Omega$</span>, has the boundary <span>$\Gamma$</span>, consisting of a Dirichlet part, <span>$\Gamma_\mathrm{D}$</span>, and a Neumann part, <span>$\Gamma_\mathrm{N}$</span>, with outward pointing normal vector <span>$\boldsymbol{n}$</span>. <span>$\boldsymbol{u}_\mathrm{D}$</span> denotes prescribed displacements on <span>$\Gamma_\mathrm{D}$</span>, while <span>$\boldsymbol{t}_\mathrm{N}$</span> the known tractions on <span>$\Gamma_\mathrm{N}$</span>.</p><p>In this example, we use linear elasticity, such that</p><p class="math-container">\[\boldsymbol{\sigma} = \boldsymbol{\mathsf{E}} : \boldsymbol{\varepsilon}\]</p><p>where <span>$\boldsymbol{\mathsf{E}}$</span> is the elastic stiffness tensor and <span>$\boldsymbol{\varepsilon}$</span> is the small strain tensor,</p><p class="math-container">\[\boldsymbol{\varepsilon} = \frac{1}{2} \left(
   \boldsymbol{\nabla} \otimes \boldsymbol{u}
   +
   \boldsymbol{u} \otimes \boldsymbol{\nabla}
@@ -11,7 +11,7 @@
   \left(\delta \boldsymbol{u} \otimes \boldsymbol{\nabla} \right) : \boldsymbol{\sigma}
 \, \mathrm{d}V
 =
-\int_{\partial\Omega}
+\int_{\Gamma}
   \delta \boldsymbol{u} \cdot \boldsymbol{t}
 \, \mathrm{d}A
 +
@@ -22,14 +22,15 @@
   \left(\delta \boldsymbol{u} \otimes \boldsymbol{\nabla} \right) : \boldsymbol{\sigma}
 \, \mathrm{d}V
 =
-\int_{\partial\Omega}
+\int_{\Gamma}
   \delta \boldsymbol{u} \cdot \boldsymbol{t}
 \, \mathrm{d}A \,.\]</p><p>Finally, we choose to operate on a 2-dimensional problem under plain strain conditions. First we load Ferrite, and some other packages we need.</p><pre><code class="language-julia hljs">using Ferrite, FerriteGmsh, SparseArrays</code></pre><p>Like for the Heat Equation example, we will use a unit square - but here we&#39;ll load the grid of the Ferrite logo! This is done by downloading <a href="../logo.geo"><code>logo.geo</code></a> and loading it using <a href="https://github.com/Ferrite-FEM/FerriteGmsh.jl"><code>FerriteGmsh.jl</code></a>,</p><pre><code class="language-julia hljs">using Downloads: download
 logo_mesh = &quot;logo.geo&quot;
 asset_url = &quot;https://raw.githubusercontent.com/Ferrite-FEM/Ferrite.jl/gh-pages/assets/&quot;
 isfile(logo_mesh) || download(string(asset_url, logo_mesh), logo_mesh)
 
-grid = togrid(logo_mesh);</code></pre><p>By default the grid lacks the facetsets for the boundaries, so we add them by Ferrite here. <a href="../../reference/grid/#Ferrite.addfacetset!"><code>addfacetset!</code></a> allows to add facetsets to the grid based on coordinates. Note that approximate comparison to 0.0 doesn&#39;t work well, so we use a tolerance instead.</p><pre><code class="language-julia hljs">addfacetset!(grid, &quot;top&quot;,    x -&gt; x[2] ≈ 1.0) # faces for which x[2] ≈ 1.0 for all nodes
+grid = togrid(logo_mesh);
+FerriteGmsh.Gmsh.finalize();</code></pre><p>By default the grid lacks the facetsets for the boundaries, so we add them by Ferrite here. <a href="../../reference/grid/#Ferrite.addfacetset!"><code>addfacetset!</code></a> allows to add facetsets to the grid based on coordinates. Note that approximate comparison to 0.0 doesn&#39;t work well, so we use a tolerance instead.</p><pre><code class="language-julia hljs">addfacetset!(grid, &quot;top&quot;,    x -&gt; x[2] ≈ 1.0) # faces for which x[2] ≈ 1.0 for all nodes
 addfacetset!(grid, &quot;left&quot;,   x -&gt; abs(x[1]) &lt; 1e-6)
 addfacetset!(grid, &quot;bottom&quot;, x -&gt; abs(x[2]) &lt; 1e-6);</code></pre><h3 id="Trial-and-test-functions"><a class="docs-heading-anchor" href="#Trial-and-test-functions">Trial and test functions</a><a id="Trial-and-test-functions-1"></a><a class="docs-heading-anchor-permalink" href="#Trial-and-test-functions" title="Permalink"></a></h3><p>We use linear Lagrange functions as test and trial functions. The grid is composed of triangular elements, thus we need the Lagrange functions defined on <code>RefTriangle</code>. All currently available interpolations can be found under <a href="../../reference/interpolations/#Ferrite.Interpolation"><code>Interpolation</code></a>.</p><p>Since the displacement field, <span>$\boldsymbol{u}$</span>, is vector valued, we use vector valued shape functions <span>$\boldsymbol{N}_i$</span> to approximate the test and trial functions:</p><p class="math-container">\[\boldsymbol{u} \approx \sum_{i=1}^N \boldsymbol{N}_i \left(\boldsymbol{x}\right) \, \hat{u}_i
 \qquad
@@ -125,7 +126,7 @@ for (key, color) in colors
     for i in getcellset(grid, key)
         color_data[i] = color
     end
-end</code></pre><p>And then we save to the vtk file.</p><pre><code class="language-julia hljs">VTKFile(&quot;linear_elasticity&quot;, dh) do vtk
+end</code></pre><p>And then we save to the vtk file.</p><pre><code class="language-julia hljs">VTKGridFile(&quot;linear_elasticity&quot;, dh) do vtk
     write_solution(vtk, dh, u)
     write_cell_data(vtk, color_data, &quot;colors&quot;)
 end</code></pre><h2 id="linear_elasticity-plain-program"><a class="docs-heading-anchor" href="#linear_elasticity-plain-program">Plain program</a><a id="linear_elasticity-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#linear_elasticity-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="linear_elasticity"><code>linear_elasticity.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, FerriteGmsh, SparseArrays
@@ -137,6 +138,7 @@ isfile(logo_mesh) || download(string(asset_url, logo_mesh), logo_mesh)
 
 FerriteGmsh.Gmsh.initialize() # hide
 grid = togrid(logo_mesh);
+FerriteGmsh.Gmsh.finalize();
 
 addfacetset!(grid, &quot;top&quot;,    x -&gt; x[2] ≈ 1.0) # faces for which x[2] ≈ 1.0 for all nodes
 addfacetset!(grid, &quot;left&quot;,   x -&gt; abs(x[1]) &lt; 1e-6)
@@ -243,7 +245,7 @@ for (key, color) in colors
     end
 end
 
-VTKFile(&quot;linear_elasticity&quot;, dh) do vtk
+VTKGridFile(&quot;linear_elasticity&quot;, dh) do vtk
     write_solution(vtk, dh, u)
     write_cell_data(vtk, color_data, &quot;colors&quot;)
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation/">« Heat equation</a><a class="docs-footer-nextpage" href="../incompressible_elasticity/">Incompressible elasticity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Sunday 4 August 2024 14:46">Sunday 4 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation/">« Heat equation</a><a class="docs-footer-nextpage" href="../incompressible_elasticity/">Incompressible elasticity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Monday 5 August 2024 16:09">Monday 5 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

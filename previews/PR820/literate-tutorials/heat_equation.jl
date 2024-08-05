@@ -8,7 +8,7 @@
 #-
 #md # !!! tip
 #md #     This example is also available as a Jupyter notebook:
-#md #     [`heat_equation.ipynb`](@__NBVIEWER_ROOT_URL__/examples/heat_equation.ipynb).
+#md #     [`heat_equation.ipynb`](@__NBVIEWER_ROOT_URL__/tutorials/heat_equation.ipynb).
 #-
 #
 # ## Introduction
@@ -213,7 +213,7 @@ u = K \ f;
 # ### Exporting to VTK
 # To visualize the result we export the grid and our field `u`
 # to a VTK-file, which can be viewed in e.g. [ParaView](https://www.paraview.org/).
-VTKFile("heat_equation", dh) do vtk
+VTKGridFile("heat_equation", dh) do vtk
     write_solution(vtk, dh, u)
 end
 

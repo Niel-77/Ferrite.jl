@@ -9,7 +9,7 @@
 #-
 #md # !!! tip
 #md #     This example is also available as a Jupyter notebook:
-#md #     [`topology_optimization.ipynb`](@__NBVIEWER_ROOT_URL__/examples/topology_optimization.ipynb).
+#md #     [`topology_optimization.ipynb`](@__NBVIEWER_ROOT_URL__/gallery/topology_optimization.ipynb).
 #-
 #
 # ## Introduction
@@ -200,11 +200,11 @@ function cache_neighborhood(dh, topology)
         nbg = zeros(Int,_nfacets)
         i = cellid(element)
         for j in 1:_nfacets
-            nbg_cellid = getcells(getneighborhood(topology, dh.grid, FacetIndex(i,j)))
+            nbg_cellid = getneighborhood(topology, dh.grid, FacetIndex(i,j))
             if(!isempty(nbg_cellid))
-                nbg[j] = first(nbg_cellid) # assuming only one face neighbor per cell
+                nbg[j] = first(nbg_cellid)[1] # assuming only one face neighbor per cell
             else # boundary face
-                nbg[j] = first(getcells(getneighborhood(topology, dh.grid, FacetIndex(i,opp[j]))))
+                nbg[j] = first(getneighborhood(topology, dh.grid, FacetIndex(i,opp[j])))[1]
             end
         end
 
@@ -504,7 +504,7 @@ function topopt(ra,ρ,n,filename; output=:false)
             i = @sprintf("%3.3i", it)
             filename_it = string(filename, "_", i)
 
-            VTKFile(filename_it, grid) do vtk
+            VTKGridFile(filename_it, grid) do vtk
                 write_cell_data(vtk, χ, "density")
             end
         end
@@ -512,7 +512,7 @@ function topopt(ra,ρ,n,filename; output=:false)
 
     ## export converged results
     if(!output)
-        VTKFile(filename, grid) do vtk
+        VTKGridFile(filename, grid) do vtk
             write_cell_data(vtk, χ, "density")
         end
     end
@@ -541,7 +541,7 @@ end
 
 #md # ## References
 #md # ```@bibliography
-#md # Pages = ["gallery/topology_optimization.md"]
+#md # Pages = ["topology_optimization.md"]
 #md # Canonical = false
 #md # ```
 

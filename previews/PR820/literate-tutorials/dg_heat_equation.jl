@@ -9,7 +9,7 @@
 #-
 #md # !!! tip
 #md #     This example is also available as a Jupyter notebook:
-#md #     [`dg_heat_equation.ipynb`](@__NBVIEWER_ROOT_URL__/examples/dg_heat_equation.ipynb).
+#md #     [`dg_heat_equation.ipynb`](@__NBVIEWER_ROOT_URL__/tutorials/dg_heat_equation.ipynb).
 #-
 #
 # This example was developed
@@ -334,7 +334,7 @@ K, f = assemble_global(cellvalues, facetvalues, interfacevalues, K, dh, order, d
 
 apply!(K, f, ch)
 u = K \ f;
-VTKFile("dg_heat_equation", dh) do vtk
+VTKGridFile("dg_heat_equation", dh) do vtk
     write_solution(vtk, dh, u)
 end;
 
@@ -344,7 +344,7 @@ using Test                        #src
 
 #md # ## References
 #md # ```@bibliography
-#md # Pages = ["tutorials/dg_heat_equation.md"]
+#md # Pages = ["dg_heat_equation.md"]
 #md # Canonical = false
 #md # ```
 

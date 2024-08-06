@@ -4,7 +4,7 @@
 #-
 #md # !!! tip
 #md #     This example is also available as a Jupyter notebook:
-#md #     [`stokes-flow.ipynb`](@__NBVIEWER_ROOT_URL__/examples/stokes-flow.ipynb).
+#md #     [`stokes-flow.ipynb`](@__NBVIEWER_ROOT_URL__/tutorials/stokes-flow.ipynb).
 #-
 #
 # ![](stokes-flow.png)
@@ -514,7 +514,7 @@ function main()
     u = K \ f
     apply!(u, ch)
     ## Export the solution
-    VTKFile("stokes-flow", grid) do vtk
+    VTKGridFile("stokes-flow", grid) do vtk
         write_solution(vtk, dh, u)
     end
 

@@ -9,7 +9,7 @@
 #-
 #md # !!! tip
 #md #     This example is also available as a Jupyter notebook:
-#md #     [`computational_homogenization.ipynb`](@__NBVIEWER_ROOT_URL__/examples/computational_homogenization.ipynb).
+#md #     [`computational_homogenization.ipynb`](@__NBVIEWER_ROOT_URL__/tutorials/computational_homogenization.ipynb).
 #-
 #
 # ## Introduction
@@ -519,7 +519,7 @@ round.(ev; digits=-8)
 
 uM = zeros(ndofs(dh))
 
-VTKFile("homogenization", dh) do vtk
+VTKGridFile("homogenization", dh) do vtk
     for i in 1:3
         ## Compute macroscopic solution
         apply_analytical!(uM, dh, :u, x -> εᴹ[i] ⋅ x)

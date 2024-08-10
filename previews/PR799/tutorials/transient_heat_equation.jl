@@ -1,4 +1,4 @@
-using Ferrite, SparseArrays
+using Ferrite, SparseArrays, WriteVTK
 
 grid = generate_grid(Quadrilateral, (100, 100));
 
@@ -106,13 +106,13 @@ apply_analytical!(uₙ, dh, :u, x -> (x[1]^2 - 1) * (x[2]^2 - 1) * max_temp);
 
 apply!(A, ch);
 
-pvd = VTKFileCollection("transient-heat", grid);
-t = 0
-addstep!(pvd, t) do io
-    write_solution(io, dh, uₙ)
+pvd = paraview_collection("transient-heat")
+VTKGridFile("transient-heat-0", dh) do vtk
+    write_solution(vtk, dh, uₙ)
+    pvd[0.0] = vtk
 end
 
-for t in Δt:Δt:T
+for (step, t) in enumerate(Δt:Δt:T)
     #First of all, we need to update the Dirichlet boundary condition values.
     update!(ch, t)
 
@@ -124,8 +124,9 @@ for t in Δt:Δt:T
     #Finally, we can solve the time step and save the solution afterwards.
     u = A \ b
 
-    addstep!(pvd, t) do io
-        write_solution(io, dh, u)
+    VTKGridFile("transient-heat-$step", dh) do vtk
+        write_solution(vtk, dh, u)
+        pvd[t] = vtk
     end
     #At the end of the time loop, we set the previous solution to the current one and go to the next time step.
     uₙ .= u

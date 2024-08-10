@@ -1,4 +1,4 @@
-using Ferrite, Tensors, ProgressMeter
+using Ferrite, Tensors, ProgressMeter, WriteVTK
 using BlockArrays, SparseArrays, LinearAlgebra
 
 struct NeoHooke
@@ -207,8 +207,8 @@ function solve(interpolation_u, interpolation_p)
     Δt = 0.1;
     NEWTON_TOL = 1e-8
 
-    pvd = VTKFileCollection("hyperelasticity_incomp_mixed", grid);
-    for t ∈ 0.0:Δt:Tf
+    pvd = paraview_collection("hyperelasticity_incomp_mixed");
+    for (step, t) ∈ enumerate(0.0:Δt:Tf)
         # Perform Newton iterations
         Ferrite.update!(dbc, t)
         apply!(w, dbc)
@@ -236,8 +236,9 @@ function solve(interpolation_u, interpolation_p)
         end;
 
         # Save the solution fields
-        addstep!(pvd, t) do io
-            write_solution(io, dh, w)
+        VTKGridFile("hyperelasticity_incomp_mixed_$step", grid) do vtk
+            write_solution(vtk, dh, w)
+            pvd[t] = vtk
         end
     end;
     close(pvd);

@@ -6,7 +6,7 @@ end                        #hide
 nothing                    #hide
 
 using Ferrite, FerriteGmsh
-using BlockArrays, SparseArrays, LinearAlgebra
+using BlockArrays, SparseArrays, LinearAlgebra, WriteVTK
 
 struct GrayScottMaterial{T}
     D₁::T
@@ -190,9 +190,10 @@ function gray_scott_on_sphere(material::GrayScottMaterial, Δt::Real, T::Real, r
     setup_initial_conditions!(uₜ₋₁, cellvalues, dh)
 
     # And prepare output for visualization.
-    pvd = VTKFileCollection("reactive-surface.pvd", dh);
-    addstep!(pvd, 0.0) do io
-        write_solution(io, dh, uₜ₋₁)
+    pvd = paraview_collection("reactive-surface")
+    VTKGridFile("reactive-surface-0", dh) do vtk
+        write_solution(vtk, dh, uₜ₋₁)
+        pvd[0.0] = vtk
     end
 
     # This is now the main solve loop.
@@ -216,8 +217,9 @@ function gray_scott_on_sphere(material::GrayScottMaterial, Δt::Real, T::Real, r
         # The solution is then stored every 10th step to vtk files for
         # later visualization purposes.
         if (iₜ % 10) == 0
-            addstep!(pvd, t) do io
-                write_solution(io, dh, uₜ₋₁)
+            VTKGridFile("reactive-surface-$(iₜ)", dh) do vtk
+                write_solution(vtk, dh, uₜ₋₁)
+                pvd[t] = vtk
             end
         end
 

@@ -5,7 +5,7 @@
  end                        #hide
  nothing                    #hide
 
-using Ferrite, SparseArrays, BlockArrays, LinearAlgebra, UnPack, LinearSolve
+using Ferrite, SparseArrays, BlockArrays, LinearAlgebra, UnPack, LinearSolve, WriteVTK
 
 using OrdinaryDiffEq
 
@@ -309,10 +309,11 @@ integrator = init(
     verbose=true, internalnorm=FreeDofErrorNorm(ch), d_discontinuities=[1.0]
 );
 
-pvd = VTKFileCollection("vortex-street", grid);
-for (u,t) in intervals(integrator)
-    addstep!(pvd, t) do io
-        write_solution(io, dh, u)
+pvd = paraview_collection("vortex-street")
+for (step, (u,t)) in enumerate(intervals(integrator))
+    VTKGridFile("vortex-street-$step", dh) do vtk
+        write_solution(vtk, dh, u)
+        pvd[t] = vtk
     end
 end
 close(pvd);

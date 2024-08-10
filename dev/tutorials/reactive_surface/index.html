@@ -3,7 +3,7 @@
    \partial_t r_1 &amp;= \nabla \cdot (D_1 \nabla r_1) - r_1*r_2^2 + F *(1 - r_1) \quad \textbf{x} \in \Omega, \\
    \partial_t r_2 &amp;= \nabla \cdot (D_2 \nabla r_2) + r_1*r_2^2 - r_2*(F + k ) \quad \textbf{x} \in \Omega,
  \end{aligned}\]</p><p>where <span>$r_1$</span> and <span>$r_2$</span> are the reaction fields, <span>$D_1$</span> and <span>$D_2$</span> the diffusion tensors, <span>$k$</span> is the conversion rate, <span>$F$</span> is the feed rate and <span>$\Omega$</span> the domain. Depending on the choice of parameters a different pattern can be observed. Please also note that the domain does not have a boundary. The corresponding weak form can be derived as usual.</p><p>For simplicity we will solve the problem with the Lie-Troter-Godunov operator splitting technique with the classical reaction-diffusion split. In this method we split our problem in two problems, i.e. a heat problem and a pointwise reaction problem, and solve them alternatingly to advance in time.</p><h2 id="Solver-details"><a class="docs-heading-anchor" href="#Solver-details">Solver details</a><a id="Solver-details-1"></a><a class="docs-heading-anchor-permalink" href="#Solver-details" title="Permalink"></a></h2><p>The main idea for the Lie-Trotter-Godunov scheme is simple. We can write down the reaction diffusion problem in an abstract way as</p><p class="math-container">\[  \partial_t \mathbf{r} = \mathcal{D}\mathbf{r} + R(\mathbf{r}) \quad \textbf{x} \in \Omega\]</p><p>where <span>$\mathcal{D}$</span> is the diffusion operator and <span>$R$</span> is the reaction operator. Notice that the right hand side is just the sum of two operators. Now with our operator splitting scheme we can advance a solution <span>$\mathbf{r}(t_1)$</span> to <span>$\mathbf{r}(t_2)$</span> by first solving a heat problem</p><p class="math-container">\[  \partial_t \mathbf{r}^{\mathrm{\mathrm{A}}} = \mathcal{D}\mathbf{r}^{\mathrm{A}} \quad \textbf{x} \in \Omega\]</p><p>with <span>$\mathbf{r}^{\mathrm{A}}(t_1) = \mathbf{r}(t_1)$</span> on the time interval <span>$t_1$</span> to <span>$t_2$</span> and use the solution as the initial condition to solve the reaction problem</p><p class="math-container">\[  \partial_t \mathbf{r}^{\mathrm{B}} = R(\mathbf{r}^{\mathrm{B}}) \quad \textbf{x} \in \Omega\]</p><p>with <span>$\mathbf{r}^{\mathrm{B}}(t_1) = \mathbf{r}^{\mathrm{A}}(t_2)$</span>. This way we obtain a solution approximation <span>$\mathbf{r}(t_2) \approx \mathbf{r}^{\mathrm{B}}(t_2)$</span>.</p><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>The operator splitting itself is an approximation, so even if we solve the subproblems analytically we end up with having only a solution approximation. We also do not have a beginner friendly reference for the theory behind operator splitting and can only refer to the original papers for each method.</p></div></div><h2 id="Commented-Program"><a class="docs-heading-anchor" href="#Commented-Program">Commented Program</a><a id="Commented-Program-1"></a><a class="docs-heading-anchor-permalink" href="#Commented-Program" title="Permalink"></a></h2><p>Now we solve the problem in Ferrite. What follows is a program spliced with comments. The full program, without comments, can be found in the next <a href="#reactive_surface-plain-program">section</a>.</p><p>First we load Ferrite, and some other packages we need</p><pre><code class="language-julia hljs">using Ferrite, FerriteGmsh
-using BlockArrays, SparseArrays, LinearAlgebra</code></pre><h3 id="Assembly-routines"><a class="docs-heading-anchor" href="#Assembly-routines">Assembly routines</a><a id="Assembly-routines-1"></a><a class="docs-heading-anchor-permalink" href="#Assembly-routines" title="Permalink"></a></h3><p>Before we head into the assembly, we define a helper struct to control the dispatches.</p><pre><code class="language-julia hljs">struct GrayScottMaterial{T}
+using BlockArrays, SparseArrays, LinearAlgebra, WriteVTK</code></pre><h3 id="Assembly-routines"><a class="docs-heading-anchor" href="#Assembly-routines">Assembly routines</a><a id="Assembly-routines-1"></a><a class="docs-heading-anchor-permalink" href="#Assembly-routines" title="Permalink"></a></h3><p>Before we head into the assembly, we define a helper struct to control the dispatches.</p><pre><code class="language-julia hljs">struct GrayScottMaterial{T}
     D₁::T
     D₂::T
     F::T
@@ -177,9 +177,10 @@ end</code></pre><pre class="documenter-example-output"><code class="nohighlight 
     setup_initial_conditions!(uₜ₋₁, cellvalues, dh)
 
     # And prepare output for visualization.
-    pvd = VTKFileCollection(&quot;reactive-surface.pvd&quot;, dh);
-    addstep!(pvd, 0.0) do io
-        write_solution(io, dh, uₜ₋₁)
+    pvd = paraview_collection(&quot;reactive-surface&quot;)
+    VTKGridFile(&quot;reactive-surface-0&quot;, dh) do vtk
+        write_solution(vtk, dh, uₜ₋₁)
+        pvd[0.0] = vtk
     end
 
     # This is now the main solve loop.
@@ -203,8 +204,9 @@ end</code></pre><pre class="documenter-example-output"><code class="nohighlight 
         # The solution is then stored every 10th step to vtk files for
         # later visualization purposes.
         if (iₜ % 10) == 0
-            addstep!(pvd, t) do io
-                write_solution(io, dh, uₜ₋₁)
+            VTKGridFile(&quot;reactive-surface-$(iₜ)&quot;, dh) do vtk
+                write_solution(vtk, dh, uₜ₋₁)
+                pvd[t] = vtk
             end
         end
 
@@ -217,28 +219,8 @@ end
 
 # This parametrization gives the spot pattern shown in the gif above.
 material = GrayScottMaterial(0.00016, 0.00008, 0.06, 0.062)
-gray_scott_on_sphere(material, 10.0, 32000.0, 3)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">322-element Vector{String}:
- &quot;reactive-surface.pvd&quot;
- &quot;reactive-surface_1.vtu&quot;
- &quot;reactive-surface_2.vtu&quot;
- &quot;reactive-surface_3.vtu&quot;
- &quot;reactive-surface_4.vtu&quot;
- &quot;reactive-surface_5.vtu&quot;
- &quot;reactive-surface_6.vtu&quot;
- &quot;reactive-surface_7.vtu&quot;
- &quot;reactive-surface_8.vtu&quot;
- &quot;reactive-surface_9.vtu&quot;
- ⋮
- &quot;reactive-surface_313.vtu&quot;
- &quot;reactive-surface_314.vtu&quot;
- &quot;reactive-surface_315.vtu&quot;
- &quot;reactive-surface_316.vtu&quot;
- &quot;reactive-surface_317.vtu&quot;
- &quot;reactive-surface_318.vtu&quot;
- &quot;reactive-surface_319.vtu&quot;
- &quot;reactive-surface_320.vtu&quot;
- &quot;reactive-surface_321.vtu&quot;</code></pre><h2 id="reactive_surface-plain-program"><a class="docs-heading-anchor" href="#reactive_surface-plain-program">Plain program</a><a id="reactive_surface-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#reactive_surface-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../reactive_surface.jl"><code>reactive_surface.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, FerriteGmsh
-using BlockArrays, SparseArrays, LinearAlgebra
+gray_scott_on_sphere(material, 10.0, 32000.0, 3)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Ptr{Nothing} @0x0000000000000000</code></pre><h2 id="reactive_surface-plain-program"><a class="docs-heading-anchor" href="#reactive_surface-plain-program">Plain program</a><a id="reactive_surface-plain-program-1"></a><a class="docs-heading-anchor-permalink" href="#reactive_surface-plain-program" title="Permalink"></a></h2><p>Here follows a version of the program without any comments. The file is also available here: <a href="../reactive_surface.jl"><code>reactive_surface.jl</code></a>.</p><pre><code class="language-julia hljs">using Ferrite, FerriteGmsh
+using BlockArrays, SparseArrays, LinearAlgebra, WriteVTK
 
 struct GrayScottMaterial{T}
     D₁::T
@@ -422,9 +404,10 @@ function gray_scott_on_sphere(material::GrayScottMaterial, Δt::Real, T::Real, r
     setup_initial_conditions!(uₜ₋₁, cellvalues, dh)
 
     # And prepare output for visualization.
-    pvd = VTKFileCollection(&quot;reactive-surface.pvd&quot;, dh);
-    addstep!(pvd, 0.0) do io
-        write_solution(io, dh, uₜ₋₁)
+    pvd = paraview_collection(&quot;reactive-surface&quot;)
+    VTKGridFile(&quot;reactive-surface-0&quot;, dh) do vtk
+        write_solution(vtk, dh, uₜ₋₁)
+        pvd[0.0] = vtk
     end
 
     # This is now the main solve loop.
@@ -448,8 +431,9 @@ function gray_scott_on_sphere(material::GrayScottMaterial, Δt::Real, T::Real, r
         # The solution is then stored every 10th step to vtk files for
         # later visualization purposes.
         if (iₜ % 10) == 0
-            addstep!(pvd, t) do io
-                write_solution(io, dh, uₜ₋₁)
+            VTKGridFile(&quot;reactive-surface-$(iₜ)&quot;, dh) do vtk
+                write_solution(vtk, dh, uₜ₋₁)
+                pvd[t] = vtk
             end
         end
 
@@ -462,4 +446,4 @@ end
 
 # This parametrization gives the spot pattern shown in the gif above.
 material = GrayScottMaterial(0.00016, 0.00008, 0.06, 0.062)
-gray_scott_on_sphere(material, 10.0, 32000.0, 3)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../ns_vs_diffeq/">« Incompressible Navier-Stokes equations via DifferentialEquations.jl</a><a class="docs-footer-nextpage" href="../linear_shell/">Linear shell »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Wednesday 7 August 2024 08:27">Wednesday 7 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+gray_scott_on_sphere(material, 10.0, 32000.0, 3)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../ns_vs_diffeq/">« Incompressible Navier-Stokes equations via DifferentialEquations.jl</a><a class="docs-footer-nextpage" href="../linear_shell/">Linear shell »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Saturday 10 August 2024 12:03">Saturday 10 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

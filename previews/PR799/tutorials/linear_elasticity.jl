@@ -5,10 +5,10 @@ logo_mesh = "logo.geo"
 asset_url = "https://raw.githubusercontent.com/Ferrite-FEM/Ferrite.jl/gh-pages/assets/"
 isfile(logo_mesh) || download(string(asset_url, logo_mesh), logo_mesh)
 
-FerriteGmsh.Gmsh.initialize() # hide
+FerriteGmsh.Gmsh.initialize() #hide
 FerriteGmsh.Gmsh.gmsh.option.set_number("General.Verbosity", 2) #hide
 grid = togrid(logo_mesh);
-FerriteGmsh.Gmsh.finalize();
+FerriteGmsh.Gmsh.finalize(); #hide
 
 addfacetset!(grid, "top",    x -> x[2] ≈ 1.0) # faces for which x[2] ≈ 1.0 for all nodes
 addfacetset!(grid, "left",   x -> abs(x[1]) < 1e-6)
@@ -33,7 +33,7 @@ add!(ch, Dirichlet(:u, getfacetset(grid, "bottom"), (x, t) -> 0.0, 2))
 add!(ch, Dirichlet(:u, getfacetset(grid, "left"),   (x, t) -> 0.0, 1))
 close!(ch);
 
-traction(x) = Vec(0.0, 20e3 * x[1])
+traction(x) = Vec(0.0, 20e3 * x[1]);
 
 function assemble_external_forces!(f_ext, dh, facetset, facetvalues, prescribed_traction)
     # Create a temporary array for the facet's local contributions to the external force vector

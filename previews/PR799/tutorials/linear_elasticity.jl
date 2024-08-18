@@ -43,9 +43,11 @@ function assemble_external_forces!(f_ext, dh, facetset, facetvalues, prescribed_
         reinit!(facetvalues, face)
         # Reset the temporary array for the next facet
         fill!(fe_ext, 0.0)
+        # Access the cell's coordinates
+        cell_coordinates = getcoordinates(face)
         for qp in 1:getnquadpoints(facetvalues)
             # Calculate the global coordinate of the quadrature point.
-            x = spatial_coordinate(facetvalues, qp, getcoordinates(face))
+            x = spatial_coordinate(facetvalues, qp, cell_coordinates)
             tₚ = prescribed_traction(x)
             # Get the integration weight for the current quadrature point.
             dΓ = getdetJdV(facetvalues, qp)
@@ -65,9 +67,10 @@ Emod = 200e3 # Young's modulus [MPa]
 
 Gmod = Emod / (2(1 + ν))  # Shear modulus
 Kmod = Emod / (3(1 - 2ν)) # Bulk modulus
-E4 = gradient(ϵ -> 2 * Gmod * dev(ϵ) + 3 * Kmod * vol(ϵ), zero(SymmetricTensor{2,2}));
 
-function assemble_cell!(ke, cellvalues, ∂σ∂ε)
+C = gradient(ϵ -> 2 * Gmod * dev(ϵ) + 3 * Kmod * vol(ϵ), zero(SymmetricTensor{2,2}));
+
+function assemble_cell!(ke, cellvalues, C)
     for q_point in 1:getnquadpoints(cellvalues)
         # Get the integration weight for the quadrature point
         dΩ = getdetJdV(cellvalues, q_point)
@@ -77,7 +80,7 @@ function assemble_cell!(ke, cellvalues, ∂σ∂ε)
             for j in 1:getnbasefunctions(cellvalues)
                 # Symmetric gradient of the trial function
                 ∇ˢʸᵐNⱼ = shape_symmetric_gradient(cellvalues, q_point, j)
-                ke[i, j] += (∇Nᵢ ⊡ ∂σ∂ε ⊡ ∇ˢʸᵐNⱼ) * dΩ
+                ke[i, j] += (∇Nᵢ ⊡ C ⊡ ∇ˢʸᵐNⱼ) * dΩ
             end
         end
     end
@@ -105,7 +108,7 @@ function assemble_global!(K, dh, cellvalues, ∂σ∂ε)
 end
 
 K = allocate_matrix(dh)
-assemble_global!(K, dh, cellvalues, E4);
+assemble_global!(K, dh, cellvalues, C);
 
 f_ext = zeros(ndofs(dh))
 assemble_external_forces!(f_ext, dh, getfacetset(grid, "top"), facetvalues, traction);
@@ -113,22 +116,52 @@ assemble_external_forces!(f_ext, dh, getfacetset(grid, "top"), facetvalues, trac
 apply!(K, f_ext, ch)
 u = K \ f_ext;
 
-color_data = zeros(Int, getncells(grid))
-colors = Dict(
-    "1" => 1, "5" => 1, # purple
-    "2" => 2, "3" => 2, # red
-    "4" => 3,           # blue
-    "6" => 4            # green
-    )
-for (key, color) in colors
-    for i in getcellset(grid, key)
-        color_data[i] = color
+function calculate_stresses(grid, dh, cv, u, C)
+    qp_stresses = [
+        [zero(SymmetricTensor{2,2}) for _ in 1:getnquadpoints(cv)]
+        for _ in 1:getncells(grid)]
+    avg_cell_stresses = tuple((zeros(getncells(grid)) for _ in 1:3)...)
+    for cell in CellIterator(dh)
+        reinit!(cv, cell)
+        cell_stresses = qp_stresses[cellid(cell)]
+        for q_point in 1:getnquadpoints(cv)
+            ε = function_symmetric_gradient(cv, q_point, u, celldofs(cell))
+            cell_stresses[q_point] = C ⊡ ε
+        end
+        σ_avg = sum(cell_stresses) / getnquadpoints(cv)
+        avg_cell_stresses[1][cellid(cell)] = σ_avg[1, 1]
+        avg_cell_stresses[2][cellid(cell)] = σ_avg[2, 2]
+        avg_cell_stresses[3][cellid(cell)] = σ_avg[1, 2]
     end
+    return qp_stresses, avg_cell_stresses
 end
+
+qp_stresses, avg_cell_stresses = calculate_stresses(grid, dh, cellvalues, u, C)
+
+proj = L2Projector(Lagrange{RefTriangle, 1}(), grid)
+stress_field = project(proj, qp_stresses, qr)
+
+color_data = zeros(Int, getncells(grid))         #hide
+colors = [                                       #hide
+    "1" => 1, "5" => 1, # purple                 #hide
+    "2" => 2, "3" => 2, # red                    #hide
+    "4" => 3,           # blue                   #hide
+    "6" => 4            # green                  #hide
+    ]                                            #hide
+for (key, color) in colors                       #hide
+    for i in getcellset(grid, key)               #hide
+        color_data[i] = color                    #hide
+    end                                          #hide
+end                                              #hide
 
 VTKGridFile("linear_elasticity", dh) do vtk
     write_solution(vtk, dh, u)
-    write_cell_data(vtk, color_data, "colors")
+    for (i, key) in enumerate(("11", "22", "12"))
+        write_cell_data(vtk, avg_cell_stresses[i], "sigma_" * key)
+    end
+    write_projection(vtk, proj, stress_field, "stress field")
+    Ferrite.write_cellset(vtk, grid)
+    write_cell_data(vtk, color_data, "colors") #hide
 end
 
 using Test                                                            #hide

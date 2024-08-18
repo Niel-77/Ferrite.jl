@@ -136,10 +136,10 @@ function calculate_stresses(grid, dh, cv, u, C)
     return qp_stresses, avg_cell_stresses
 end
 
-qp_stresses, avg_cell_stresses = calculate_stresses(grid, dh, cellvalues, u, C)
+qp_stresses, avg_cell_stresses = calculate_stresses(grid, dh, cellvalues, u, C);
 
 proj = L2Projector(Lagrange{RefTriangle, 1}(), grid)
-stress_field = project(proj, qp_stresses, qr)
+stress_field = project(proj, qp_stresses, qr);
 
 color_data = zeros(Int, getncells(grid))         #hide
 colors = [                                       #hide

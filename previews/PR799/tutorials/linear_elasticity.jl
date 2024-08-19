@@ -87,7 +87,7 @@ function assemble_cell!(ke, cellvalues, C)
     return ke
 end
 
-function assemble_global!(K, dh, cellvalues, ∂σ∂ε)
+function assemble_global!(K, dh, cellvalues, C)
     # Allocate the element stiffness matrix
     n_basefuncs = getnbasefunctions(cellvalues)
     ke = zeros(n_basefuncs, n_basefuncs)
@@ -100,7 +100,7 @@ function assemble_global!(K, dh, cellvalues, ∂σ∂ε)
         # Reset the element stiffness matrix
         fill!(ke, 0.0)
         # Compute element contribution
-        assemble_cell!(ke, cellvalues, ∂σ∂ε)
+        assemble_cell!(ke, cellvalues, C)
         # Assemble ke into K
         assemble!(assembler, celldofs(cell), ke)
     end
